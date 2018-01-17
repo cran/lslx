@@ -111,9 +111,9 @@ r6_lslx &lt;-<span class="st"> </span>lslx<span class="op">$</span><span class="
 <h2>Model Fitting</h2>
 <p>So far, the specified auxiliary variables are only stored in <code>lslx</code> object. They are actually used after implementing the <code>fit</code> related methods.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">fit</span>(<span class="dt">penalty_method =</span> <span class="st">&quot;mcp&quot;</span>,
-            <span class="dt">lambda_grid =</span> <span class="kw">seq</span>(.<span class="dv">02</span>, .<span class="dv">30</span>, .<span class="dv">02</span>),
+            <span class="dt">lambda_grid =</span> <span class="kw">seq</span>(.<span class="dv">01</span>, .<span class="dv">30</span>, .<span class="dv">01</span>),
             <span class="dt">delta_grid =</span> <span class="kw">c</span>(<span class="dv">5</span>, <span class="dv">10</span>))</code></pre></div>
-<pre><code>CONGRATS: The optimization algorithm converged under all specified penalty levels. 
+<pre><code>CONGRATS: The algorithm converged under all specified penalty levels. 
   Specified Tolerance for Convergence: 0.001 
   Specified Maximal Number of Iterations: 100 </code></pre>
 <p>By default, <code>fit</code> related methods implement two-step method (possibly with auxiliary variables) for handling missing values. User can specify the missing method explicitly via <code>missing_method</code> argument. Another missing method in the current version is listwise deletion. However, listwise deletion has no theoretical advantages over the two step method.</p>
@@ -122,95 +122,95 @@ r6_lslx &lt;-<span class="st"> </span>lslx<span class="op">$</span><span class="
 <h2>Model Summarizing</h2>
 <p>The following code summarizes the fitting result under the penalty level selected by Bayesian information criterion (BIC). The <code>number of missing pattern</code> shows how many missing patterns present in the data set (include the complete pattern). If the <code>lslx</code> object is initialized via raw data, by default, a corrected sandwich standard error will be used for coefficient test. The correction is based on the asymptotic covariance of saturated derived by full information maximum likelihood. Also, the mean adjusted likelihood ratio test is based on this quantity. For the reference, please see the section of Missing Data in <code>?lslx</code></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">summarize</span>(<span class="dt">selector =</span> <span class="st">&quot;bic&quot;</span>)</code></pre></div>
-<pre><code>General Information                                                                                   
-   number of observation                                                    301.000
-   number of complete observation                                           138.000
-   number of missing pattern                                                  4.000
-   number of group                                                            1.000
-   number of response                                                         9.000
-   number of factor                                                           3.000
-   number of free coefficient                                                30.000
-   number of penalized coefficient                                           18.000
+<pre><code>General Information                                                                           
+   number of observations                                           301.000
+   number of complete observations                                  138.000
+   number of missing patterns                                         4.000
+   number of groups                                                   1.000
+   number of responses                                                9.000
+   number of factors                                                  3.000
+   number of free coefficients                                       30.000
+   number of penalized coefficients                                  18.000
 
-Fitting Information                                                                                   
-   penalty method                                                               mcp
-   lambda grid                                                           0.02 - 0.3
-   delta grid                                                                5 - 10
-   algorithm                                                                 fisher
-   missing method                                                         two stage
-   tolerance for convergence                                                  0.001
+Fitting Information                                                                           
+   penalty method                                                       mcp
+   lambda grid                                                   0.01 - 0.3
+   delta grid                                                        5 - 10
+   algorithm                                                         fisher
+   missing method                                                 two stage
+   tolerance for convergence                                          0.001
 
-Saturated Model Information                                                                                   
-   loss value                                                                 0.000
-   number of non-zero coefficient                                            54.000
-   degree of freedom                                                          0.000
+Saturated Model Information                                                                           
+   loss value                                                         0.000
+   number of non-zero coefficients                                   54.000
+   degree of freedom                                                  0.000
 
-Baseline Model Information                                                                                   
-   loss value                                                                 2.937
-   number of non-zero coefficient                                            18.000
-   degree of freedom                                                         36.000
+Baseline Model Information                                                                           
+   loss value                                                         2.937
+   number of non-zero coefficients                                   18.000
+   degree of freedom                                                 36.000
 
-Numerical Condition                                                                                   
-   lambda                                                                     0.160
-   delta                                                                      5.000
-   objective value                                                            0.218
-   objective gradient absolute maximum                                        0.001
-   objective hessian convexity                                                0.683
-   number of iteration                                                        3.000
-   loss value                                                                 0.154
-   number of non-zero coefficient                                            33.000
-   degree of freedom                                                         21.000
-   robust degree of freedom                                                  26.729
-   scaling factor                                                             1.273
+Numerical Condition                                                                           
+   lambda                                                             0.150
+   delta                                                              5.000
+   objective value                                                    0.214
+   objective gradient absolute maximum                                0.000
+   objective Hessian convexity                                        0.683
+   number of iterations                                               3.000
+   loss value                                                         0.151
+   number of non-zero coefficients                                   33.000
+   degree of freedom                                                 21.000
+   robust degree of freedom                                          26.715
+   scaling factor                                                     1.272
 
-Information Criteria                                                                                   
-   Akaike information criterion (aic)                                         0.014
-   Akaike information criterion with penalty being 3 (aic3)                  -0.056
-   consistent Akaike information criterion (caic)                            -0.314
-   Bayesian information criterion (bic)                                      -0.244
-   adjusted Bayesian information criterion (abic)                            -0.023
-   Haughton Bayesian information criterion (hbic)                            -0.116
-   robust Akaike information criterion (raic)                                -0.024
-   robust Akaike information criterion with penalty being 3 (raic3)          -0.113
-   robust consistent Akaike information criterion (rcaic)                    -0.442
-   robust Bayesian information criterion (rbic)                              -0.353
-   robust adjusted Bayesian information criterion (rabic)                    -0.071
-   robust Haughton Bayesian information criterion (rhbic)                    -0.190
+Information Criteria                                                                           
+   Akaike information criterion (aic)                                 0.012
+   Akaike information criterion with penalty 3 (aic3)                -0.058
+   consistent Akaike information criterion (caic)                    -0.317
+   Bayesian information criterion (bic)                              -0.247
+   adjusted Bayesian information criterion (abic)                    -0.026
+   Haughton Bayesian information criterion (hbic)                    -0.119
+   robust Akaike information criterion (raic)                        -0.026
+   robust Akaike information criterion with penalty 3 (raic3)        -0.115
+   robust consistent Akaike information criterion (rcaic)            -0.444
+   robust Bayesian information criterion (rbic)                      -0.355
+   robust adjusted Bayesian information criterion (rabic)            -0.074
+   robust Haughton Bayesian information criterion (rhbic)            -0.192
 
-Fit Indices                                                                                   
-   root mean square error of approximation (rmsea)                            0.063
-   comparative fit indice (cfi)                                               0.970
-   non-normed fit indice (nnfi)                                               0.949
-   standardized root mean of residual (srmr)                                  0.041
+Fit Indices                                                                           
+   root mean square error of approximation (rmsea)                    0.062
+   comparative fit index (cfi)                                        0.971
+   non-normed fit index (nnfi)                                        0.950
+   standardized root mean of residual (srmr)                          0.040
 
 Likelihood Ratio Test
                     statistic         df    p-value
-   unadjusted          46.285     21.000      0.001
-   mean-adjusted       36.365     21.000      0.020
+   unadjusted          45.502     21.000      0.001
+   mean-adjusted       35.768     21.000      0.023
 
 Root Mean Square Error of Approximation Test
                      estimate      lower      upper
-   unadjusted           0.063      0.033      0.092
-   mean-adjusted        0.056      0.010      0.090
+   unadjusted           0.062      0.032      0.092
+   mean-adjusted        0.055      0.006      0.090
 
 Coefficient Test (Standard Error = &quot;sandwich&quot;, Alpha Level = 0.05)
   Factor Loading
                       type  estimate  std.error  z-value  p-value  lower  upper
-       x1&lt;-visual     free     0.934      0.108    8.655    0.000  0.722  1.145
-       x2&lt;-visual     free     0.475      0.094    5.063    0.000  0.291  0.658
-       x3&lt;-visual     free     0.630      0.082    7.659    0.000  0.469  0.791
+       x1&lt;-visual     free     0.935      0.107    8.701    0.000  0.724  1.146
+       x2&lt;-visual     free     0.475      0.094    5.065    0.000  0.291  0.658
+       x3&lt;-visual     free     0.630      0.082    7.681    0.000  0.469  0.791
        x4&lt;-visual      pen     0.000        -        -        -      -      -  
-       x5&lt;-visual      pen    -0.153      0.119   -1.288    0.099 -0.386  0.080
+       x5&lt;-visual      pen    -0.160      0.119   -1.345    0.089 -0.393  0.073
        x6&lt;-visual      pen     0.000        -        -        -      -      -  
-       x7&lt;-visual      pen    -0.074      0.100   -0.740    0.230 -0.270  0.122
+       x7&lt;-visual      pen    -0.084      0.101   -0.835    0.202 -0.281  0.113
        x8&lt;-visual      pen     0.000        -        -        -      -      -  
-       x9&lt;-visual      pen     0.226      0.080    2.838    0.002  0.070  0.382
+       x9&lt;-visual      pen     0.230      0.080    2.886    0.002  0.074  0.385
       x1&lt;-textual      pen     0.000        -        -        -      -      -  
       x2&lt;-textual      pen     0.000        -        -        -      -      -  
       x3&lt;-textual      pen     0.000        -        -        -      -      -  
-      x4&lt;-textual     free     0.978      0.062   15.840    0.000  0.857  1.099
-      x5&lt;-textual     free     1.126      0.079   14.235    0.000  0.971  1.281
-      x6&lt;-textual     free     0.917      0.059   15.659    0.000  0.802  1.032
+      x4&lt;-textual     free     0.978      0.062   15.839    0.000  0.857  1.099
+      x5&lt;-textual     free     1.130      0.079   14.281    0.000  0.975  1.285
+      x6&lt;-textual     free     0.917      0.059   15.651    0.000  0.802  1.031
       x7&lt;-textual      pen     0.000        -        -        -      -      -  
       x8&lt;-textual      pen     0.000        -        -        -      -      -  
       x9&lt;-textual      pen     0.000        -        -        -      -      -  
@@ -220,30 +220,30 @@ Coefficient Test (Standard Error = &quot;sandwich&quot;, Alpha Level = 0.05)
         x4&lt;-speed      pen     0.000        -        -        -      -      -  
         x5&lt;-speed      pen     0.000        -        -        -      -      -  
         x6&lt;-speed      pen     0.000        -        -        -      -      -  
-        x7&lt;-speed     free     0.714      0.100    7.130    0.000  0.518  0.911
-        x8&lt;-speed     free     0.769      0.084    9.141    0.000  0.604  0.934
-        x9&lt;-speed     free     0.462      0.073    6.352    0.000  0.320  0.605
+        x7&lt;-speed     free     0.721      0.101    7.163    0.000  0.524  0.918
+        x8&lt;-speed     free     0.766      0.084    9.164    0.000  0.602  0.930
+        x9&lt;-speed     free     0.461      0.072    6.398    0.000  0.320  0.603
 
   Covariance
                       type  estimate  std.error  z-value  p-value  lower  upper
- textual&lt;-&gt;visual     free     0.462      0.070    6.559    0.000  0.324  0.600
-   speed&lt;-&gt;visual     free     0.329      0.085    3.873    0.000  0.163  0.496
-  speed&lt;-&gt;textual     free     0.217      0.081    2.680    0.004  0.058  0.376
+ textual&lt;-&gt;visual     free     0.463      0.070    6.574    0.000  0.325  0.601
+   speed&lt;-&gt;visual     free     0.332      0.085    3.885    0.000  0.164  0.499
+  speed&lt;-&gt;textual     free     0.220      0.081    2.707    0.003  0.061  0.379
 
   Variance
                       type  estimate  std.error  z-value  p-value  lower  upper
   visual&lt;-&gt;visual    fixed     1.000        -        -        -      -      -  
 textual&lt;-&gt;textual    fixed     1.000        -        -        -      -      -  
     speed&lt;-&gt;speed    fixed     1.000        -        -        -      -      -  
-          x1&lt;-&gt;x1     free     0.463      0.187    2.469    0.007  0.095  0.830
-          x2&lt;-&gt;x2     free     1.150      0.116    9.880    0.000  0.922  1.378
-          x3&lt;-&gt;x3     free     0.867      0.099    8.739    0.000  0.672  1.061
-          x4&lt;-&gt;x4     free     0.388      0.054    7.257    0.000  0.283  0.493
-          x5&lt;-&gt;x5     free     0.397      0.070    5.685    0.000  0.260  0.534
-          x6&lt;-&gt;x6     free     0.351      0.046    7.625    0.000  0.261  0.441
-          x7&lt;-&gt;x7     free     0.694      0.114    6.094    0.000  0.471  0.917
-          x8&lt;-&gt;x8     free     0.429      0.113    3.808    0.000  0.208  0.650
-          x9&lt;-&gt;x9     free     0.619      0.077    8.071    0.000  0.469  0.769
+          x1&lt;-&gt;x1     free     0.461      0.186    2.474    0.007  0.096  0.826
+          x2&lt;-&gt;x2     free     1.150      0.116    9.893    0.000  0.922  1.378
+          x3&lt;-&gt;x3     free     0.867      0.099    8.795    0.000  0.674  1.061
+          x4&lt;-&gt;x4     free     0.389      0.053    7.274    0.000  0.284  0.494
+          x5&lt;-&gt;x5     free     0.395      0.070    5.652    0.000  0.258  0.531
+          x6&lt;-&gt;x6     free     0.351      0.046    7.641    0.000  0.261  0.441
+          x7&lt;-&gt;x7     free     0.688      0.115    6.003    0.000  0.463  0.913
+          x8&lt;-&gt;x8     free     0.433      0.112    3.882    0.000  0.214  0.652
+          x9&lt;-&gt;x9     free     0.618      0.076    8.094    0.000  0.468  0.768
 
   Intercept
                       type  estimate  std.error  z-value  p-value  lower  upper

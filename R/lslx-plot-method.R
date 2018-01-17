@@ -1,12 +1,13 @@
+## \code{$plot_numerical_condition()} plots the values of selected numerical conditions. ##
 lslx$set("public",
          "plot_numerical_condition",
-         function(condition = "default") {
+         function(condition) {
            if (length(private$fitting$control$lambda_grid) <= 1) {
              stop(
                "The 'plot_numerical_condition' method is only available for the case of 'length(lambda_grid) > 1'"
              )
            }
-           if (condition == "default") {
+           if (missing(condition)) {
              condition <-
                c("n_iter_out",
                  "objective_gradient_abs_max",
@@ -24,11 +25,20 @@ lslx$set("public",
                                                                                       ,
                                                                                       drop = FALSE])
            condition <-
-             gsub(
-               pattern = "_",
-               replacement = " ",
-               x = rownames(df_for_plot)
+             ifelse(
+               condition == "objective_gradient_abs_max",
+               "gradient",
+               ifelse(
+                 condition == "objective_hessian_convexity",
+                 "hessian",
+                 condition
+               )
              )
+           condition <-
+             gsub(pattern = "_",
+                  replacement = " ",
+                  x = condition)
+           
            df_for_plot$condition <- condition
            df_for_plot <-
              reshape(
@@ -74,15 +84,16 @@ lslx$set("public",
              ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
          })
 
+## \code{$plot_information_criterion()} shows how the values of information criteria vary with penalty levels. ##
 lslx$set("public",
          "plot_information_criterion",
-         function(criterion = "default") {
+         function(criterion) {
            if (length(private$fitting$control$lambda_grid) <= 1) {
              stop(
                "The 'plot_fit_indice' method is only available for the case of 'length(lambda_grid) > 1'"
              )
            }
-           if (criterion == "default") {
+           if (missing(criterion)) {
              criterion <- c("aic", "aic3", "caic", "bic", "abic", "hbic")
            } else {
              if (any(!(
@@ -127,7 +138,7 @@ lslx$set("public",
              ))
            ggplot2::ggplot(df_for_plot, ggplot2::aes(x = lambda, y = value)) +
              ggplot2::geom_line(mapping = ggplot2::aes(colour = criterion)) +
-             ggplot2::facet_grid(. ~ delta, labeller = ggplot2::label_both) +
+             ggplot2::facet_grid(. ~ delta) +
              ggplot2::theme(
                panel.grid.minor = ggplot2::element_line(size = .1),
                panel.grid.major = ggplot2::element_line(size = .2)
@@ -140,17 +151,16 @@ lslx$set("public",
              ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
          })
 
-
-
+## \code{$plot_fit_indice()} shows how the values of fit indices vary with penalty levels. ##
 lslx$set("public",
          "plot_fit_indice",
-         function(indice = "default") {
+         function(indice) {
            if (length(private$fitting$control$lambda_grid) <= 1) {
              stop(
                "The 'plot_fit_indice' method is only available for the case of 'length(lambda_grid) > 1'"
              )
            }
-           if (indice == "default") {
+           if (missing(indice)) {
              indice <-
                names(private$fitting$fitted_result$fit_indice[[1]])
            } else {
@@ -196,7 +206,7 @@ lslx$set("public",
              ))
            ggplot2::ggplot(df_for_plot, ggplot2::aes(x = lambda, y = value)) +
              ggplot2::geom_line(mapping = ggplot2::aes(colour = indice)) +
-             ggplot2::facet_grid(. ~ delta, labeller = ggplot2::label_both) +
+             ggplot2::facet_grid(. ~ delta) +
              ggplot2::theme(
                panel.grid.minor = ggplot2::element_line(size = .1),
                panel.grid.major = ggplot2::element_line(size = .2)
@@ -209,28 +219,28 @@ lslx$set("public",
              ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
          })
 
-
+## \code{$plot_coefficient()} visualizes the solution paths of coefficients. ##
 lslx$set("public",
          "plot_coefficient",
-         function(block = "default",
-                  left = "default",
-                  right = "default",
-                  both = "default") {
+         function(block,
+                  left,
+                  right,
+                  both) {
            if (length(private$fitting$control$lambda_grid) <= 1) {
              stop(
                "The 'plot_coefficient' method is only available for the case of 'length(lambda_grid) > 1'"
              )
            }
-           if (block == "default") {
+           if (missing(block)) {
              block <- unique(private$model$specification$block)
            }
-           if (left == "default") {
+           if (missing(left)) {
              left <- c(private$model$name_eta, "1")
            }
-           if (right == "default") {
+           if (missing(right)) {
              right <- c(private$model$name_eta, "1")
            }
-           if (both == "default") {
+           if (missing(both)) {
              both <- c(private$model$name_eta, "1")
            }
            df_for_plot <-
@@ -294,7 +304,7 @@ lslx$set("public",
              ))
            ggplot2::ggplot(df_for_plot, ggplot2::aes(x = lambda, y = estimate)) +
              ggplot2::geom_line(mapping = ggplot2::aes(colour = relation)) +
-             ggplot2::facet_grid(group ~ delta, labeller = ggplot2::label_both) +
+             ggplot2::facet_grid(group ~ delta) +
              ggplot2::theme(
                panel.grid.minor = ggplot2::element_line(size = .1),
                panel.grid.major = ggplot2::element_line(size = .2)

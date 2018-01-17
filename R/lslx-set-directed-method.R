@@ -1,35 +1,43 @@
+## \code{$free_directed()} / \code{$penalize_directed()} / \code{$fix_directed()} sets all the regression coefficients from \code{right} to \code{left} as FREE / PENALIZED / FIXED. ##
 lslx$set("private",
          "set_directed",
          function(left,
                   right,
                   group,
-                  type,
+                  action,
                   verbose = TRUE) {
            if (missing(left)) {
              stop("Argument 'left' must be given.")
-           } else if(missing(right)) {
+           } else if (missing(right)) {
              stop("Argument 'right' must be given.")
-           } else {}
-           
-           combination <- expand.grid(left,"<-",right)
-           combination <- apply(combination,c(1,2), as.character)
-           
-           if (is.na(private$model$reference_group)) {
-             name <- paste0(combination[,1],combination[,2],combination[,3])
-           } else if (missing(group)) {
-             stop("Argument 'group' must be given")
-           } else { 
-             name <- paste0(combination[,1],combination[,2],combination[,3],"|",group)
+           } else {
            }
            
-           private$set_coefficient(
-             name = name,
-             type = type,
-             verbose = verbose
+           if (missing(group)) {
+             group <-  private$model$name_group
+           } else if (!all(group %in% private$model$name_group)) {
+             stop(
+               "Argument 'group' contains unknown group name.",
+               "\n  Group name(s) currently recognized by 'lslx' is ",
+               do.call(paste, as.list(private$model$name_group)),
+               ".",
+               "\n  Group name specified in 'group' is ",
+               do.call(paste, as.list(group)),
+               "."
+             )
+           } else {
+           }
+           name <- paste0(
+             expand.grid(left, "<-", right)[, 1],
+             expand.grid(left, "<-", right)[, 2],
+             expand.grid(left, "<-", right)[, 3],
+             "|",
+             group
            )
-         }
-)
-
+           private$set_coefficient(name = name,
+                                   action = action,
+                                   verbose = verbose)
+         })
 
 lslx$set("public",
          "free_directed",
@@ -41,11 +49,10 @@ lslx$set("public",
              left = left,
              right = right,
              group = group,
-             type = "free",
-             verbose = verbose)
-         }
-)
-
+             action = "free",
+             verbose = verbose
+           )
+         })
 
 lslx$set("public",
          "fix_directed",
@@ -57,11 +64,10 @@ lslx$set("public",
              left = left,
              right = right,
              group = group,
-             type = "fixed",
-             verbose = verbose)
-         }
-)
-
+             action = "fix",
+             verbose = verbose
+           )
+         })
 
 lslx$set("public",
          "penalize_directed",
@@ -73,7 +79,7 @@ lslx$set("public",
              left = left,
              right = right,
              group = group,
-             type = "pen",
-             verbose = verbose)
-         }
-)
+             action = "penalize",
+             verbose = verbose
+           )
+         })

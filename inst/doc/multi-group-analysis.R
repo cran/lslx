@@ -27,7 +27,7 @@ r6_lslx$free_directed(left = c("visual", "textual", "speed"),
                       group = "Grant-White")
 
 ## ----comment = "", message = FALSE----------------------------------------------------------------
-r6_lslx$fit_lasso(lambda_grid = seq(.02, .30, .02))
+r6_lslx$fit_lasso(lambda_grid = seq(.01, .30, .01))
 
 ## ----comment = "", message = FALSE, fig.width = 24, fig.height = 14-------------------------------
 r6_lslx$summarize(selector = "bic")

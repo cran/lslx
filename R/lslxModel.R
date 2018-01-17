@@ -1,3 +1,4 @@
+## define R6 class \code{lslxModel} to store model information. ##
 lslxModel <-
   R6::R6Class(
     classname = "lslxModel",
@@ -13,7 +14,7 @@ lslxModel <-
     )
   )
 
-
+## \code{$new()} initializes a new \code{lslxModel} object. ##
 lslxModel$set("public",
               "initialize",
               function(model,
@@ -52,10 +53,10 @@ lslxModel$set("public",
                     match(self$specification$left, self$name_eta),
                     decreasing = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),
                     method = "radix"
-                  ),]
+                  ), ]
               })
 
-
+## \code{$parse_model()} parses specified model. ##
 lslxModel$set("private",
               "parse_model",
               function(model) {
@@ -130,7 +131,7 @@ lslxModel$set("private",
                               ,
                               drop = FALSE]
                 model_split <-
-                  model_split[,-1, drop = FALSE]
+                  model_split[, -1, drop = FALSE]
                 model_parsed <-
                   apply(
                     X = model_split,
@@ -190,7 +191,7 @@ lslxModel$set("private",
                           "\n  Please check the specified 'model'."
                         )
                       }
-                      if (any("["(model_parsed_i$left,!(
+                      if (any("["(model_parsed_i$left, !(
                         model_parsed_i$operator %in% c("<=>", "<~>")
                       )) == "1")) {
                         stop(
@@ -281,7 +282,7 @@ lslxModel$set("private",
                 return(model_parsed)
               })
 
-
+## \code{$initialize_specification()} initializes a specification table. ##
 lslxModel$set("private",
               "initialize_specification",
               function(model_parsed) {
@@ -321,7 +322,7 @@ lslxModel$set("private",
                 
                 self$specification <-
                   self$specification[!duplicated(self$specification$relation,
-                                                 fromLast = TRUE),]
+                                                 fromLast = TRUE), ]
                 prefix_split <-
                   strsplit(self$specification$prefix, ",")
                 
@@ -450,6 +451,7 @@ lslxModel$set("private",
                 self$specification$prefix <- NULL
               })
 
+## \code{$expand_specification_alpha()} expand the specification table for intercepts. ##
 lslxModel$set("private",
               "expand_specification_alpha",
               function() {
@@ -460,8 +462,9 @@ lslxModel$set("private",
                             FUN = function(name_group_i) {
                               if (any(self$specification$matrice[self$specification$group == name_group_i] == "alpha")) {
                                 if (length(intersect(
-                                  x = self$name_response, 
-                                  y = self$name_exogenous)) > 0) {
+                                  x = self$name_response,
+                                  y = self$name_exogenous
+                                )) > 0) {
                                   relation_alpha_i <-
                                     setdiff(
                                       x = paste(
@@ -525,11 +528,7 @@ lslxModel$set("private",
                         stringsAsFactors = FALSE)
               })
 
-
-
-
-
-
+## \code{$expand_specification_psi()} expand the specification table for covariances. ##
 lslxModel$set("private",
               "expand_specification_psi",
               function() {

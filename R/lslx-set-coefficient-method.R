@@ -1,3 +1,4 @@
+## \code{$free_coefficient()} / \code{$penalize_coefficient()} / \code{$fix_coefficient()} sets the coefficient named \code{name} as FREE / PENALIZED / FIXED with starting value \code{start}. ##
 lslx$set("public",
          "free_coefficient",
          function(name,
@@ -6,12 +7,10 @@ lslx$set("public",
            private$set_coefficient(
              name = name,
              start = start,
-             type = "free",
+             action = "free",
              verbose = verbose
            )
          })
-
-
 
 lslx$set("public",
          "fix_coefficient",
@@ -21,11 +20,10 @@ lslx$set("public",
            private$set_coefficient(
              name = name,
              start = start,
-             type = "fixed",
+             action = "fix",
              verbose = verbose
            )
          })
-
 
 lslx$set("public",
          "penalize_coefficient",
@@ -35,18 +33,16 @@ lslx$set("public",
            private$set_coefficient(
              name = name,
              start = start,
-             type = "pen",
+             action = "penalize",
              verbose = verbose
            )
          })
-
-
 
 lslx$set("private",
          "set_coefficient",
          function(name,
                   start,
-                  type,
+                  action,
                   verbose = TRUE) {
            if (missing(name)) {
              stop("Argument 'name' must be given.")
@@ -137,7 +133,7 @@ lslx$set("private",
              )
            
            if (missing(start)) {
-             if (type == "free") {
+             if (action == "free") {
                start <- rep(NA_real_, length(name))
              } else {
                start <- rep(0, length(name))
@@ -156,6 +152,17 @@ lslx$set("private",
                )
              }
            }
+           
+           if (action == "free") {
+             type <- "free"
+           } else if (action == "fix") {
+             type <- "fixed"
+           } else if (action == "penalize") {
+             type <- "pen"
+           } else {
+             
+           }
+           
            
            for (i in seq_len(length(name))) {
              if (name[i] %in% rownames(private$model$specification)) {
@@ -283,7 +290,7 @@ lslx$set("private",
                match(private$model$specification$left, private$model$name_eta),
                decreasing = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),
                method = "radix"
-             ),]
+             ), ]
            
            private$model$name_endogenous <-
              unique(private$model$specification$left[private$model$specification$matrice == "beta"])

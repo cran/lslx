@@ -1,3 +1,4 @@
+## define R6 class \code{lslxFitting} to store fitting result. ##
 lslxFitting <-
   R6::R6Class(
     classname = "lslxFitting",
@@ -10,6 +11,7 @@ lslxFitting <-
     )
   )
 
+## \code{$new()} initializes a new \code{lslxFitting} object. ##
 lslxFitting$set("public",
                 "initialize",
                 function(model,
@@ -24,7 +26,7 @@ lslxFitting$set("public",
                   private$initialize_fitted_result()
                 })
 
-
+## \code{$initialize_control()} initializes control options. ##
 lslxFitting$set("private",
                 "initialize_control",
                 function(model,
@@ -105,7 +107,7 @@ lslxFitting$set("private",
                   }
                 })
 
-
+## \code{$initialize_reduced_model()} initializes a reduced model. ##
 lslxFitting$set("private",
                 "initialize_reduced_model",
                 function(model) {
@@ -193,7 +195,7 @@ lslxFitting$set("private",
                     )
                 })
 
-
+## \code{$initialize_reduced_data()} initializes a reduced data. ##
 lslxFitting$set("private",
                 "initialize_reduced_data",
                 function(data) {
@@ -247,7 +249,7 @@ lslxFitting$set("private",
                             FUN = function(pattern_i,
                                            auxiliary_i,
                                            idc_use_i) {
-                              return(cbind(pattern_i[idc_use_i, , drop = FALSE],!is.na(auxiliary_i[idc_use_i, , drop = FALSE])))
+                              return(cbind(pattern_i[idc_use_i, , drop = FALSE], !is.na(auxiliary_i[idc_use_i, , drop = FALSE])))
                             },
                             data$pattern,
                             data$auxiliary,
@@ -283,7 +285,7 @@ lslxFitting$set("private",
                         mapply(
                           FUN = function(weight_i,
                                          idc_use_i) {
-                            weight_i <- weight_i[idc_use_i, ]
+                            weight_i <- weight_i[idc_use_i,]
                             weight_i <- weight_i / sum(weight_i)
                             return(weight_i)
                           },
@@ -319,7 +321,7 @@ lslxFitting$set("private",
                         mapply(
                           FUN = function(weight_i,
                                          idc_complete_i) {
-                            weight_i <- weight_i[idc_complete_i, ]
+                            weight_i <- weight_i[idc_complete_i,]
                             weight_i <- weight_i / sum(weight_i)
                             return(weight_i)
                           },
@@ -608,7 +610,7 @@ lslxFitting$set("private",
                   }
                 })
 
-
+## \code{$initialize_supplied_result()} initializes a supplied result. ##
 lslxFitting$set("private",
                 "initialize_supplied_result",
                 function() {
@@ -618,7 +620,7 @@ lslxFitting$set("private",
                   private$compute_fitted_start()
                 })
 
-
+## \code{$compute_fitted_start()} computes starting value. ##
 lslxFitting$set("private",
                 "compute_fitted_start",
                 function() {
@@ -927,7 +929,7 @@ lslxFitting$set("private",
                     self$reduced_model$theta_name
                 })
 
-
+## \code{$compute_baseline_model()} computes baseline model. ##
 lslxFitting$set("private",
                 "compute_baseline_model",
                 function() {
@@ -968,7 +970,7 @@ lslxFitting$set("private",
                   )
                 })
 
-
+## \code{$compute_saturated_model()} computes saturated model. ##
 lslxFitting$set("private",
                 "compute_saturated_model",
                 function() {
@@ -980,7 +982,7 @@ lslxFitting$set("private",
                   )
                 })
 
-
+## \code{$initialize_fitted_result()} initializes a fitted result. ##
 lslxFitting$set("private",
                 "initialize_fitted_result",
                 function() {

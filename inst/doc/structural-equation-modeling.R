@@ -27,7 +27,7 @@ r6_lslx$penalize_coefficient(name = c("y1<->y5",
                                       "y6<->y8"))
 
 ## ----comment = "", message = FALSE----------------------------------------------------------------
-r6_lslx$fit_mcp(lambda_grid = seq(.02, .30, .02),
+r6_lslx$fit_mcp(lambda_grid = seq(.01, .30, .01),
                  delta_grid = Inf)
 
 ## ----comment = "", message = FALSE, fig.width = 24, fig.height = 14-------------------------------

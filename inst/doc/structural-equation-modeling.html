@@ -120,148 +120,148 @@ The relation y8&lt;-&gt;y6 under G is set as PENALIZED with starting value = 0. 
 <div id="model-fitting" class="section level2">
 <h2>Model Fitting</h2>
 <p>After an <code>lslx</code> object is initialized, method <code>fit_mcp</code> can be used to fit the specified model into the given data with mcp penalty funtion.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">fit_mcp</span>(<span class="dt">lambda_grid =</span> <span class="kw">seq</span>(.<span class="dv">02</span>, .<span class="dv">30</span>, .<span class="dv">02</span>),
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">fit_mcp</span>(<span class="dt">lambda_grid =</span> <span class="kw">seq</span>(.<span class="dv">01</span>, .<span class="dv">30</span>, .<span class="dv">01</span>),
                  <span class="dt">delta_grid =</span> <span class="ot">Inf</span>)</code></pre></div>
-<pre><code>CONGRATS: The optimization algorithm converged under all specified penalty levels. 
+<pre><code>CONGRATS: The algorithm converged under all specified penalty levels. 
   Specified Tolerance for Convergence: 0.001 
   Specified Maximal Number of Iterations: 100 </code></pre>
-<p>The <code>fit_mcp</code> requires users to specify the considerd penalty levels (argument <code>lambda_grid</code> and <code>delta_grid</code>). In this example, the lambda grid is <code>seq(.02, .30, .02)</code> and the delta grid is <code>Inf</code>. Note that in this example <code>delta = Inf</code> makes mcp to be equivalent to the lasso panalty. All the fitting result will be stored in the <code>fitting</code> field of <code>r6_lslx</code>.</p>
+<p>The <code>fit_mcp</code> requires users to specify the considerd penalty levels (argument <code>lambda_grid</code> and <code>delta_grid</code>). In this example, the lambda grid is <code>seq(.01, .30, .01)</code> and the delta grid is <code>Inf</code>. Note that in this example <code>delta = Inf</code> makes mcp to be equivalent to the lasso panalty. All the fitting result will be stored in the <code>fitting</code> field of <code>r6_lslx</code>.</p>
 </div>
 <div id="model-summarizing" class="section level2">
 <h2>Model Summarizing</h2>
 <p>Unlike traditional SEM analysis, <code>lslx</code> fit the model into data under all the penalty levels considered. To summarize the fitting result, a selector to determine an optimal penalty level must be specified. Availble selectors can be found in the section of Penalty Level Selection via <code>?lslx</code>. The following code summarize the fitting result under the penalty level selected by Akaike information criterion (AIC).</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">summarize</span>(<span class="dt">selector =</span> <span class="st">&quot;aic&quot;</span>)</code></pre></div>
-<pre><code>General Information                                                                                   
-   number of observation                                                         75
-   number of complete observation                                                75
-   number of missing pattern                                                   none
-   number of group                                                                1
-   number of response                                                            11
-   number of factor                                                               3
-   number of free coefficient                                                    36
-   number of penalized coefficient                                                6
+<pre><code>General Information                                                                           
+   number of observations                                                75
+   number of complete observations                                       75
+   number of missing patterns                                          none
+   number of groups                                                       1
+   number of responses                                                   11
+   number of factors                                                      3
+   number of free coefficients                                           36
+   number of penalized coefficients                                       6
 
-Fitting Information                                                                                   
-   penalty method                                                               mcp
-   lambda grid                                                           0.02 - 0.3
-   delta grid                                                                   Inf
-   algorithm                                                                 fisher
-   missing method                                                              none
-   tolerance for convergence                                                  0.001
+Fitting Information                                                                           
+   penalty method                                                       mcp
+   lambda grid                                                   0.01 - 0.3
+   delta grid                                                           Inf
+   algorithm                                                         fisher
+   missing method                                                      none
+   tolerance for convergence                                          0.001
 
-Saturated Model Information                                                                                   
-   loss value                                                                 0.000
-   number of non-zero coefficient                                            77.000
-   degree of freedom                                                          0.000
+Saturated Model Information                                                                           
+   loss value                                                         0.000
+   number of non-zero coefficients                                   77.000
+   degree of freedom                                                  0.000
 
-Baseline Model Information                                                                                   
-   loss value                                                                 9.739
-   number of non-zero coefficient                                            22.000
-   degree of freedom                                                         55.000
+Baseline Model Information                                                                           
+   loss value                                                         9.739
+   number of non-zero coefficients                                   22.000
+   degree of freedom                                                 55.000
 
-Numerical Condition                                                                                   
-   lambda                                                                     0.020
-   delta                                                                        Inf
-   objective value                                                            0.630
-   objective gradient absolute maximum                                        0.001
-   objective hessian convexity                                                0.029
-   number of iteration                                                        3.000
-   loss value                                                                 0.519
-   number of non-zero coefficient                                            42.000
-   degree of freedom                                                         35.000
-   robust degree of freedom                                                     NaN
-   scaling factor                                                               NaN
+Numerical Condition                                                                           
+   lambda                                                             0.010
+   delta                                                                Inf
+   objective value                                                    0.572
+   objective gradient absolute maximum                                0.000
+   objective Hessian convexity                                        0.029
+   number of iterations                                               3.000
+   loss value                                                         0.511
+   number of non-zero coefficients                                   42.000
+   degree of freedom                                                 35.000
+   robust degree of freedom                                             NaN
+   scaling factor                                                       NaN
 
-Information Criteria                                                                                   
-   Akaike information criterion (aic)                                        -0.415
-   Akaike information criterion with penalty being 3 (aic3)                  -0.881
-   consistent Akaike information criterion (caic)                            -1.963
-   Bayesian information criterion (bic)                                      -1.496
-   adjusted Bayesian information criterion (abic)                            -0.026
-   Haughton Bayesian information criterion (hbic)                            -0.639
-   robust Akaike information criterion (raic)                                   NaN
-   robust Akaike information criterion with penalty being 3 (raic3)             NaN
-   robust consistent Akaike information criterion (rcaic)                       NaN
-   robust Bayesian information criterion (rbic)                                 NaN
-   robust adjusted Bayesian information criterion (rabic)                       NaN
-   robust Haughton Bayesian information criterion (rhbic)                       NaN
+Information Criteria                                                                           
+   Akaike information criterion (aic)                                -0.423
+   Akaike information criterion with penalty 3 (aic3)                -0.889
+   consistent Akaike information criterion (caic)                    -1.971
+   Bayesian information criterion (bic)                              -1.504
+   adjusted Bayesian information criterion (abic)                    -0.033
+   Haughton Bayesian information criterion (hbic)                    -0.646
+   robust Akaike information criterion (raic)                           NaN
+   robust Akaike information criterion with penalty 3 (raic3)           NaN
+   robust consistent Akaike information criterion (rcaic)               NaN
+   robust Bayesian information criterion (rbic)                         NaN
+   robust adjusted Bayesian information criterion (rabic)               NaN
+   robust Haughton Bayesian information criterion (rhbic)               NaN
 
-Fit Indices                                                                                   
-   root mean square error of approximation (rmsea)                            0.038
-   comparative fit indice (cfi)                                               0.994
-   non-normed fit indice (nnfi)                                               0.991
-   standardized root mean of residual (srmr)                                  0.046
+Fit Indices                                                                           
+   root mean square error of approximation (rmsea)                    0.035
+   comparative fit index (cfi)                                        0.995
+   non-normed fit index (nnfi)                                        0.992
+   standardized root mean of residual (srmr)                          0.045
 
 Likelihood Ratio Test
                     statistic         df    p-value
-   unadjusted          38.888     35.000      0.299
+   unadjusted          38.302     35.000      0.322
    mean-adjusted          -          -          -  
 
 Root Mean Square Error of Approximation Test
                      estimate      lower      upper
-   unadjusted           0.038      0.000      0.103
+   unadjusted           0.035      0.000      0.101
    mean-adjusted          -          -          -  
 
 Coefficient Test (Standard Error = &quot;observed_fisher&quot;, Alpha Level = 0.05)
   Factor Loading
                   type  estimate  std.error  z-value  p-value  lower  upper
     x1&lt;-ind60    fixed     1.000        -        -        -      -      -  
-    x2&lt;-ind60     free     2.181      0.139   15.664    0.000  1.908  2.453
-    x3&lt;-ind60     free     1.819      0.152   11.940    0.000  1.520  2.117
+    x2&lt;-ind60     free     2.181      0.139   15.665    0.000  1.908  2.453
+    x3&lt;-ind60     free     1.819      0.152   11.941    0.000  1.520  2.117
     y1&lt;-dem60    fixed     1.000        -        -        -      -      -  
-    y2&lt;-dem60     free     1.279      0.182    7.010    0.000  0.921  1.636
-    y3&lt;-dem60     free     1.061      0.148    7.172    0.000  0.771  1.350
-    y4&lt;-dem60     free     1.278      0.149    8.575    0.000  0.986  1.570
+    y2&lt;-dem60     free     1.268      0.184    6.901    0.000  0.908  1.628
+    y3&lt;-dem60     free     1.060      0.148    7.156    0.000  0.769  1.350
+    y4&lt;-dem60     free     1.272      0.150    8.491    0.000  0.978  1.565
     y5&lt;-dem65    fixed     1.000        -        -        -      -      -  
-    y6&lt;-dem65     free     1.198      0.169    7.074    0.000  0.866  1.530
-    y7&lt;-dem65     free     1.285      0.159    8.061    0.000  0.973  1.597
-    y8&lt;-dem65     free     1.277      0.162    7.884    0.000  0.960  1.595
+    y6&lt;-dem65     free     1.192      0.170    7.002    0.000  0.859  1.526
+    y7&lt;-dem65     free     1.283      0.160    8.023    0.000  0.969  1.596
+    y8&lt;-dem65     free     1.272      0.163    7.824    0.000  0.953  1.591
 
   Regression
                   type  estimate  std.error  z-value  p-value  lower  upper
- dem60&lt;-ind60     free     1.477      0.395    3.737    0.000  0.702  2.251
- dem65&lt;-ind60     free     0.558      0.230    2.426    0.008  0.107  1.009
- dem65&lt;-dem60     free     0.841      0.099    8.515    0.000  0.647  1.034
+ dem60&lt;-ind60     free     1.480      0.396    3.736    0.000  0.703  2.256
+ dem65&lt;-ind60     free     0.564      0.232    2.437    0.007  0.110  1.019
+ dem65&lt;-dem60     free     0.839      0.099    8.499    0.000  0.646  1.033
 
   Covariance
                   type  estimate  std.error  z-value  p-value  lower  upper
-      y5&lt;-&gt;y1      pen     0.593      0.354    1.675    0.047 -0.101  1.286
-      y4&lt;-&gt;y2      pen     1.054      0.644    1.637    0.051 -0.208  2.317
-      y6&lt;-&gt;y2      pen     1.855      0.660    2.809    0.002  0.561  3.149
-      y7&lt;-&gt;y3      pen     0.613      0.599    1.024    0.153 -0.560  1.786
-      y8&lt;-&gt;y4      pen     0.274      0.437    0.626    0.266 -0.583  1.130
-      y8&lt;-&gt;y6      pen     1.205      0.532    2.265    0.012  0.162  2.248
+      y5&lt;-&gt;y1      pen     0.612      0.363    1.686    0.046 -0.099  1.324
+      y4&lt;-&gt;y2      pen     1.185      0.671    1.765    0.039 -0.131  2.501
+      y6&lt;-&gt;y2      pen     2.011      0.693    2.901    0.002  0.652  3.369
+      y7&lt;-&gt;y3      pen     0.705      0.611    1.154    0.124 -0.493  1.903
+      y8&lt;-&gt;y4      pen     0.315      0.449    0.701    0.242 -0.565  1.194
+      y8&lt;-&gt;y6      pen     1.286      0.553    2.326    0.010  0.203  2.370
 
   Variance
                   type  estimate  std.error  z-value  p-value  lower  upper
-ind60&lt;-&gt;ind60     free     0.454      0.088    5.167    0.000  0.282  0.627
-dem60&lt;-&gt;dem60     free     3.983      0.946    4.212    0.000  2.129  5.836
-dem65&lt;-&gt;dem65     free     0.168      0.218    0.772    0.220 -0.259  0.594
+ind60&lt;-&gt;ind60     free     0.454      0.088    5.168    0.000  0.282  0.627
+dem60&lt;-&gt;dem60     free     3.995      0.951    4.201    0.000  2.131  5.859
+dem65&lt;-&gt;dem65     free     0.171      0.220    0.779    0.218 -0.260  0.603
       x1&lt;-&gt;x1     free     0.083      0.020    4.139    0.000  0.044  0.122
-      x2&lt;-&gt;x2     free     0.121      0.071    1.709    0.044 -0.018  0.261
+      x2&lt;-&gt;x2     free     0.121      0.071    1.711    0.044 -0.018  0.261
       x3&lt;-&gt;x3     free     0.473      0.090    5.232    0.000  0.296  0.651
-      y1&lt;-&gt;y1     free     1.922      0.452    4.256    0.000  1.037  2.808
-      y2&lt;-&gt;y2     free     6.944      1.220    5.692    0.000  4.553  9.336
-      y3&lt;-&gt;y3     free     5.091      0.946    5.381    0.000  3.237  6.946
-      y4&lt;-&gt;y4     free     3.020      0.707    4.273    0.000  1.635  4.406
-      y5&lt;-&gt;y5     free     2.372      0.476    4.983    0.000  1.439  3.306
-      y6&lt;-&gt;y6     free     4.714      0.821    5.745    0.000  3.106  6.322
-      y7&lt;-&gt;y7     free     3.412      0.704    4.849    0.000  2.033  4.791
-      y8&lt;-&gt;y8     free     3.143      0.664    4.736    0.000  1.842  4.444
+      y1&lt;-&gt;y1     free     1.920      0.463    4.152    0.000  1.014  2.827
+      y2&lt;-&gt;y2     free     7.185      1.284    5.597    0.000  4.669  9.701
+      y3&lt;-&gt;y3     free     5.106      0.960    5.316    0.000  3.224  6.989
+      y4&lt;-&gt;y4     free     3.097      0.733    4.226    0.000  1.661  4.534
+      y5&lt;-&gt;y5     free     2.377      0.485    4.901    0.000  1.427  3.328
+      y6&lt;-&gt;y6     free     4.854      0.859    5.649    0.000  3.170  6.538
+      y7&lt;-&gt;y7     free     3.438      0.718    4.788    0.000  2.031  4.846
+      y8&lt;-&gt;y8     free     3.216      0.688    4.675    0.000  1.868  4.564
 
   Intercept
                   type  estimate  std.error  z-value  p-value  lower  upper
         x1&lt;-1     free     0.000      0.085    0.000    0.500 -0.166  0.166
         x2&lt;-1     free     0.000      0.174    0.000    0.500 -0.342  0.342
         x3&lt;-1     free     0.000      0.162    0.000    0.500 -0.318  0.318
-        y1&lt;-1     free     0.000      0.303    0.000    0.500 -0.594  0.594
-        y2&lt;-1     free     0.000      0.448    0.000    0.500 -0.879  0.879
-        y3&lt;-1     free     0.000      0.377    0.000    0.500 -0.740  0.740
-        y4&lt;-1     free     0.000      0.385    0.000    0.500 -0.755  0.755
-        y5&lt;-1     free     0.000      0.302    0.000    0.500 -0.591  0.591
-        y6&lt;-1     free     0.000      0.385    0.000    0.500 -0.754  0.754
+        y1&lt;-1     free     0.000      0.304    0.000    0.500 -0.595  0.595
+        y2&lt;-1     free     0.000      0.450    0.000    0.500 -0.883  0.883
+        y3&lt;-1     free     0.000      0.378    0.000    0.500 -0.741  0.741
+        y4&lt;-1     free     0.000      0.386    0.000    0.500 -0.756  0.756
+        y5&lt;-1     free     0.000      0.302    0.000    0.500 -0.592  0.592
+        y6&lt;-1     free     0.000      0.387    0.000    0.500 -0.758  0.758
         y7&lt;-1     free     0.000      0.379    0.000    0.500 -0.743  0.743
-        y8&lt;-1     free     0.000      0.373    0.000    0.500 -0.730  0.730</code></pre>
+        y8&lt;-1     free     0.000      0.373    0.000    0.500 -0.731  0.731</code></pre>
 <p>In this example, we can see that the PL estimate under the selected penalty level doesn’t contain any zero value, which indicates that all of the covariance of measurements are relevant. The <code>summarize</code> method also shows the result of significance tests for the coefficients. In <code>lslx</code>, the default standard errors are calculated based on sandwich formula whenever raw data is available. In this example, because raw data is not used for <code>lslx</code> object initialization, standarrd error is calculated by using observed Fisher information matrix. It may not be valid when the model is misspecified and the data are not normal. Also, it is generally invalid after choosing a penalty level.</p>
 </div>
 <div id="objects-extraction" class="section level2">
@@ -271,36 +271,36 @@ dem65&lt;-&gt;dem65     free     0.168      0.218    0.772    0.220 -0.259  0.59
 <pre><code>        x1&lt;-1|G         x2&lt;-1|G         x3&lt;-1|G         y1&lt;-1|G         y2&lt;-1|G         y3&lt;-1|G 
          0.0000          0.0000          0.0000          0.0000          0.0000          0.0000 
         y4&lt;-1|G         y5&lt;-1|G         y6&lt;-1|G         y7&lt;-1|G         y8&lt;-1|G  dem60&lt;-ind60|G 
-         0.0000          0.0000          0.0000          0.0000          0.0000          1.4766 
+         0.0000          0.0000          0.0000          0.0000          0.0000          1.4799 
  dem65&lt;-ind60|G  dem65&lt;-dem60|G     x1&lt;-ind60|G     x2&lt;-ind60|G     x3&lt;-ind60|G     y1&lt;-dem60|G 
-         0.5579          0.8408          1.0000          2.1806          1.8185          1.0000 
+         0.5645          0.8391          1.0000          2.1805          1.8185          1.0000 
     y2&lt;-dem60|G     y3&lt;-dem60|G     y4&lt;-dem60|G     y5&lt;-dem65|G     y6&lt;-dem65|G     y7&lt;-dem65|G 
-         1.2787          1.0606          1.2777          1.0000          1.1979          1.2851 
+         1.2682          1.0596          1.2717          1.0000          1.1922          1.2828 
     y8&lt;-dem65|G ind60&lt;-&gt;ind60|G dem60&lt;-&gt;dem60|G dem65&lt;-&gt;dem65|G       x1&lt;-&gt;x1|G       x2&lt;-&gt;x2|G 
-         1.2773          0.4545          3.9825          0.1679          0.0829          0.1214 
+         1.2719          0.4545          3.9948          0.1714          0.0829          0.1215 
       x3&lt;-&gt;x3|G       y1&lt;-&gt;y1|G       y5&lt;-&gt;y1|G       y2&lt;-&gt;y2|G       y4&lt;-&gt;y2|G       y6&lt;-&gt;y2|G 
-         0.4733          1.9225          0.5926          6.9445          1.0545          1.8546 
+         0.4733          1.9203          0.6124          7.1852          1.1854          2.0109 
       y3&lt;-&gt;y3|G       y7&lt;-&gt;y3|G       y4&lt;-&gt;y4|G       y8&lt;-&gt;y4|G       y5&lt;-&gt;y5|G       y6&lt;-&gt;y6|G 
-         5.0914          0.6127          3.0204          0.2737          2.3723          4.7141 
+         5.1063          0.7051          3.0973          0.3146          2.3774          4.8543 
       y8&lt;-&gt;y6|G       y7&lt;-&gt;y7|G       y8&lt;-&gt;y8|G 
-         1.2050          3.4118          3.1431 </code></pre>
+         1.2864          3.4384          3.2156 </code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">diag</span>(r6_lslx<span class="op">$</span><span class="kw">extract_coefficient_acov</span>(<span class="dt">selector =</span> <span class="st">&quot;bic&quot;</span>))</code></pre></div>
 <pre><code>        x1&lt;-1|G         x2&lt;-1|G         x3&lt;-1|G         y1&lt;-1|G         y2&lt;-1|G         y3&lt;-1|G 
-       0.007165        0.030431        0.026350        0.091945        0.201019        0.142481 
+       0.007165        0.030431        0.026350        0.092137        0.202812        0.142779 
         y4&lt;-1|G         y5&lt;-1|G         y6&lt;-1|G         y7&lt;-1|G         y8&lt;-1|G  dem60&lt;-ind60|G 
-       0.148528        0.091033        0.148099        0.143586        0.138817        0.156133 
+       0.148890        0.091261        0.149386        0.143854        0.139237        0.156929 
  dem65&lt;-ind60|G  dem65&lt;-dem60|G     x1&lt;-ind60|G     x2&lt;-ind60|G     x3&lt;-ind60|G     y1&lt;-dem60|G 
-       0.052874        0.009752              NA        0.019379        0.023198              NA 
+       0.053667        0.009748              NA        0.019375        0.023195              NA 
     y2&lt;-dem60|G     y3&lt;-dem60|G     y4&lt;-dem60|G     y5&lt;-dem65|G     y6&lt;-dem65|G     y7&lt;-dem65|G 
-       0.033274        0.021869        0.022200              NA        0.028675        0.025411 
+       0.033772        0.021924        0.022429              NA        0.028990        0.025562 
     y8&lt;-dem65|G ind60&lt;-&gt;ind60|G dem60&lt;-&gt;dem60|G dem65&lt;-&gt;dem65|G       x1&lt;-&gt;x1|G       x2&lt;-&gt;x2|G 
-       0.026244        0.007734        0.894013        0.047326        0.000401        0.005047 
+       0.026431        0.007734        0.904346        0.048399        0.000401        0.005045 
       x3&lt;-&gt;x3|G       y1&lt;-&gt;y1|G       y5&lt;-&gt;y1|G       y2&lt;-&gt;y2|G       y4&lt;-&gt;y2|G       y6&lt;-&gt;y2|G 
-       0.008185        0.204032        0.125237        1.488554        0.414961        0.435944 
+       0.008183        0.213933        0.131906        1.647994        0.450813        0.480474 
       y3&lt;-&gt;y3|G       y7&lt;-&gt;y3|G       y4&lt;-&gt;y4|G       y8&lt;-&gt;y4|G       y5&lt;-&gt;y5|G       y6&lt;-&gt;y6|G 
-       0.895235        0.358282        0.499646        0.190983        0.226696        0.673361 
+       0.922531        0.373563        0.537139        0.201409        0.235288        0.738362 
       y8&lt;-&gt;y6|G       y7&lt;-&gt;y7|G       y8&lt;-&gt;y8|G 
-       0.282949        0.495052        0.440486 </code></pre>
+       0.305785        0.515648        0.473059 </code></pre>
 <p>The <code>NA</code> standard errors mean that the corresponding coefficients are fixed or identified as zero by penalty.</p>
 </div>
 

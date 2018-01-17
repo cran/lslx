@@ -30,7 +30,7 @@ r6_lslx <- lslx$new(model = model,
 
 ## ----comment = "", message = FALSE----------------------------------------------------------------
 r6_lslx$fit(penalty_method = "mcp",
-            lambda_grid = seq(.02, .30, .02),
+            lambda_grid = seq(.01, .30, .01),
             delta_grid = c(5, 10))
 
 ## ----comment = "", message = FALSE, fig.width = 24, fig.height = 14-------------------------------
