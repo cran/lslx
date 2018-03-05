@@ -1,4 +1,4 @@
-74ab502f9ab64b2b7e42bfb90975622c *DESCRIPTION
+90ac0efc58bc4db453feb33ed88efb1b *DESCRIPTION
 6374523738fbd274efe952d02bcfef3a *NAMESPACE
 212f1a097fb1dcfd7ef4c734fe452edb *R/RcppExports.R
 5065c722b409998e79a8003a9f7974a3 *R/lslx-extract-method.R
@@ -6,6 +6,7 @@
 3aadf6406615db309de934ace57bf4ed *R/lslx-get-method.R
 aa3357b34f180037871fa9fcab05812e *R/lslx-initialize-method.R
 7c1f26c7b1fea391a515efe1cd0c2fa1 *R/lslx-plot-method.R
+73bb405e400bd671896ea24b2249fd50 *R/lslx-print-method.R
 382b5c0e9ac7260e376456d356df512b *R/lslx-set-block-method.R
 7e53436f2b314477e740b0956bbe4bf2 *R/lslx-set-coefficient-method.R
 edf6d260811be6a6b0de9c1531d88a5b *R/lslx-set-directed-method.R
@@ -14,9 +15,9 @@ edf6d260811be6a6b0de9c1531d88a5b *R/lslx-set-directed-method.R
 e13085db04b572c248da48e593a008e5 *R/lslx-summarize-method.R
 4a53a2de7c6c81d267413412515ebffb *R/lslx-test-method.R
 9d896308febfc5b8e26f7d23bba12d12 *R/lslx.R
-e476b658bdd043f8594a8227c763b235 *R/lslxData.R
+e3560fd1cbdbe52345869d698fbac5bc *R/lslxData.R
 549ff56db7072c9d9643e727326866be *R/lslxFitting.R
-b383735b856f470b45908f4ffac81d73 *R/lslxModel.R
+dadb49433890def68019a6dede607a2f *R/lslxModel.R
 f6a44995a49aaf67a246df013c710aa3 *build/vignette.rds
 fa2c75472356fba2f2f6933fd2dcf71d *inst/doc/factor-analysis.R
 6ddda38630a29c5f6f185c00a9f7f333 *inst/doc/factor-analysis.Rmd
