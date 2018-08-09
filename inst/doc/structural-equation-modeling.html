@@ -73,235 +73,194 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 
 <p>In this example, we will show how to use <code>lslx</code> to conduct semi-confirmatory structural equation modeling. The example uses data <code>PoliticalDemocracy</code> in the package <code>lavaan</code>. Hence, <code>lavaan</code> must be installed.</p>
-<div id="model-sepcification" class="section level2">
-<h2>Model Sepcification</h2>
+<div id="model-specification" class="section level2">
+<h2>Model Specification</h2>
 <p>In the following specification, <code>x1</code> - <code>x3</code> and <code>y1</code> - <code>y8</code> is assumed to be measurements of 3 latent factors: <code>ind60</code>, <code>dem60</code>, and <code>dem65</code>.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model &lt;-
-<span class="st">'</span>
-<span class="st">fix(1) * x1 + x2 + x3      &lt;=: ind60</span>
-<span class="st">fix(1) * y1 + y2 + y3 + y4 &lt;=: dem60</span>
-<span class="st">fix(1) * y5 + y6 + y7 + y8 &lt;=: dem65</span>
-<span class="st">dem60 &lt;= ind60</span>
-<span class="st">dem65 &lt;= ind60 + dem60</span>
-<span class="st">'</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model_sem &lt;-<span class="st"> &quot;fix(1) * x1 + x2 + x3      &lt;=: ind60</span>
+<span class="st">              fix(1) * y1 + y2 + y3 + y4 &lt;=: dem60</span>
+<span class="st">              fix(1) * y5 + y6 + y7 + y8 &lt;=: dem65</span>
+<span class="st">              dem60 &lt;= ind60</span>
+<span class="st">              dem65 &lt;= ind60 + dem60&quot;</span></code></pre></div>
 <p>The operator <code>&lt;=:</code> means that the RHS latent factors is defined by the LHS observed variables. In particular, the loadings are freely estimated. In this model, <code>ind60</code> is measured by <code>x1</code> - <code>x3</code>, <code>dem60</code> is mainly measured by <code>y1</code> - <code>y4</code>, and <code>dem65</code> is mainly measured by <code>y5</code> - <code>y8</code>. The operator <code>&lt;=</code> means that the regression coefficients from the RHS variables to the LHS variables are freely estimated. In this model, <code>dem60</code> is influenced by <code>ind60</code> and <code>dem65</code> is influenced by <code>dem60</code> and <code>ind60</code>. Details of model syntax can be found in the section of Model Syntax via <code>?lslx</code>.</p>
 </div>
 <div id="object-initialization" class="section level2">
 <h2>Object Initialization</h2>
-<p><code>lslx</code> is written as an <code>R6</code> class. Everytime we conduct analysis with <code>lslx</code>, an <code>lslx</code> object must be initialized. The following code initializes an <code>lslx</code> object named <code>r6_lslx</code>.</p>
+<p><code>lslx</code> is written as an <code>R6</code> class. Everytime we conduct analysis with <code>lslx</code>, an <code>lslx</code> object must be initialized. The following code initializes an <code>lslx</code> object named <code>lslx_sem</code>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(lslx)
-r6_lslx &lt;-<span class="st"> </span>lslx<span class="op">$</span><span class="kw">new</span>(<span class="dt">model =</span> model,
+lslx_sem &lt;-<span class="st"> </span>lslx<span class="op">$</span><span class="kw">new</span>(<span class="dt">model =</span> model_sem,
                     <span class="dt">sample_cov =</span> <span class="kw">cov</span>(lavaan<span class="op">::</span>PoliticalDemocracy),
                     <span class="dt">sample_size =</span> <span class="kw">nrow</span>(lavaan<span class="op">::</span>PoliticalDemocracy))</code></pre></div>
 <pre><code>NOTE: Because argument 'sample_cov' doesn't contain group name(s), default group name(s) is created.
-NOTE: Because argument 'sample_mean' is missing, default 'sample_mean' is created.
-An 'lslx' R6 class is initialized via 'sample_cov'. 
-  Response Variable(s): x1 x2 x3 y1 y2 y3 y4 y5 y6 y7 y8 
-  Latent Factor(s): ind60 dem60 dem65 </code></pre>
-<p>Here, <code>lslx</code> is the object generator for <code>lslx</code> object and <code>new</code> is the build-in method of <code>lslx</code> to generate a new <code>lslx</code> object. The initialization of <code>lslx</code> requires users to specify a model for model specification (argument <code>model</code>) and a sample moments to be fitted (argument <code>sample_cov</code> and <code>sample_size</code>). The sample moment must contains all the observed variables specified in the given model.</p>
+An 'lslx' R6 class is initialized via 'sample_cov' argument. 
+  Response Variables: x1 x2 x3 y1 y2 y3 y4 y5 y6 y7 y8 
+  Latent Factors: ind60 dem60 dem65 </code></pre>
+<p>Here, <code>lslx</code> is the object generator for <code>lslx</code> object and <code>$new()</code> is the build-in method of <code>lslx</code> to generate a new <code>lslx</code> object. The initialization of <code>lslx</code> requires users to specify a model for model specification (argument <code>model</code>) and a sample moments to be fitted (argument <code>sample_cov</code> and <code>sample_size</code>). The sample moment must contain all the observed variables specified in the given model.</p>
 </div>
 <div id="model-respecification" class="section level2">
 <h2>Model Respecification</h2>
-<p>After an <code>lslx</code> object is initialized, model can be respecified by <code>free_coefficent</code>, <code>fix_coefficent</code>, and <code>penalize_coefficent</code> methods. The following code sets <code>y1&lt;-&gt;y5</code>, <code>y2&lt;-&gt;y4</code>, <code>y2&lt;-&gt;y6</code>, <code>y3&lt;-&gt;y7</code>, <code>y4&lt;-&gt;y8</code>, and <code>y6&lt;-&gt;y8</code> as penalized parameters.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">penalize_coefficient</span>(<span class="dt">name =</span> <span class="kw">c</span>(<span class="st">&quot;y1&lt;-&gt;y5&quot;</span>,
-                                      <span class="st">&quot;y2&lt;-&gt;y4&quot;</span>,
-                                      <span class="st">&quot;y2&lt;-&gt;y6&quot;</span>,
-                                      <span class="st">&quot;y3&lt;-&gt;y7&quot;</span>,
-                                      <span class="st">&quot;y4&lt;-&gt;y8&quot;</span>,
-                                      <span class="st">&quot;y6&lt;-&gt;y8&quot;</span>))</code></pre></div>
-<pre><code>The relation y5&lt;-&gt;y1 under G is set as PENALIZED with starting value = 0. 
-The relation y4&lt;-&gt;y2 under G is set as PENALIZED with starting value = 0. 
-The relation y6&lt;-&gt;y2 under G is set as PENALIZED with starting value = 0. 
-The relation y7&lt;-&gt;y3 under G is set as PENALIZED with starting value = 0. 
-The relation y8&lt;-&gt;y4 under G is set as PENALIZED with starting value = 0. 
-The relation y8&lt;-&gt;y6 under G is set as PENALIZED with starting value = 0. </code></pre>
+<p>After an <code>lslx</code> object is initialized, model can be respecified by <code>$free_coefficient()</code>, <code>$fix_coefficient()</code>, and <code>$penalize_coefficient()</code> methods. The following code sets <code>y1&lt;-&gt;y5</code>, <code>y2&lt;-&gt;y4</code>, <code>y2&lt;-&gt;y6</code>, <code>y3&lt;-&gt;y7</code>, <code>y4&lt;-&gt;y8</code>, and <code>y6&lt;-&gt;y8</code> as penalized parameters.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">lslx_sem<span class="op">$</span><span class="kw">penalize_coefficient</span>(<span class="dt">name =</span> <span class="kw">c</span>(<span class="st">&quot;y1&lt;-&gt;y5&quot;</span>,
+                                       <span class="st">&quot;y2&lt;-&gt;y4&quot;</span>,
+                                       <span class="st">&quot;y2&lt;-&gt;y6&quot;</span>,
+                                       <span class="st">&quot;y3&lt;-&gt;y7&quot;</span>,
+                                       <span class="st">&quot;y4&lt;-&gt;y8&quot;</span>,
+                                       <span class="st">&quot;y6&lt;-&gt;y8&quot;</span>))</code></pre></div>
+<pre><code>The relation y5&lt;-&gt;y1 under g is set as PENALIZED with starting value = 0. 
+The relation y4&lt;-&gt;y2 under g is set as PENALIZED with starting value = 0. 
+The relation y6&lt;-&gt;y2 under g is set as PENALIZED with starting value = 0. 
+The relation y7&lt;-&gt;y3 under g is set as PENALIZED with starting value = 0. 
+The relation y8&lt;-&gt;y4 under g is set as PENALIZED with starting value = 0. 
+The relation y8&lt;-&gt;y6 under g is set as PENALIZED with starting value = 0. </code></pre>
 <p>To see more methods for respecifying model, please check the section of Set-Related Method via <code>?lslx</code>.</p>
 </div>
 <div id="model-fitting" class="section level2">
 <h2>Model Fitting</h2>
-<p>After an <code>lslx</code> object is initialized, method <code>fit_mcp</code> can be used to fit the specified model into the given data with mcp penalty funtion.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">fit_mcp</span>(<span class="dt">lambda_grid =</span> <span class="kw">seq</span>(.<span class="dv">01</span>, .<span class="dv">30</span>, .<span class="dv">01</span>),
-                 <span class="dt">delta_grid =</span> <span class="ot">Inf</span>)</code></pre></div>
-<pre><code>CONGRATS: The algorithm converged under all specified penalty levels. 
+<p>After an <code>lslx</code> object is initialized, method <code>$fit_lasso()</code> can be used to fit the specified model into the given data with LASSO penalty function.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">lslx_sem<span class="op">$</span><span class="kw">fit_lasso</span>()</code></pre></div>
+<pre><code>CONGRATS: Algorithm converges under EVERY specified penalty level.
   Specified Tolerance for Convergence: 0.001 
   Specified Maximal Number of Iterations: 100 </code></pre>
-<p>The <code>fit_mcp</code> requires users to specify the considerd penalty levels (argument <code>lambda_grid</code> and <code>delta_grid</code>). In this example, the lambda grid is <code>seq(.01, .30, .01)</code> and the delta grid is <code>Inf</code>. Note that in this example <code>delta = Inf</code> makes mcp to be equivalent to the lasso panalty. All the fitting result will be stored in the <code>fitting</code> field of <code>r6_lslx</code>.</p>
+<p>The <code>$fit_lasso()</code> requires users to specify the considered penalty levels (argument <code>lambda_grid</code>). In this example, the lambda grid is automatically initialized by default. Note that MCP with <code>delta = Inf</code> is equivalent to the LASSO penalty. All the fitting result will be stored in the <code>fitting</code> field of <code>lslx_sem</code>.</p>
 </div>
 <div id="model-summarizing" class="section level2">
 <h2>Model Summarizing</h2>
-<p>Unlike traditional SEM analysis, <code>lslx</code> fit the model into data under all the penalty levels considered. To summarize the fitting result, a selector to determine an optimal penalty level must be specified. Availble selectors can be found in the section of Penalty Level Selection via <code>?lslx</code>. The following code summarize the fitting result under the penalty level selected by Akaike information criterion (AIC).</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">summarize</span>(<span class="dt">selector =</span> <span class="st">&quot;aic&quot;</span>)</code></pre></div>
-<pre><code>General Information                                                                           
-   number of observations                                                75
-   number of complete observations                                       75
-   number of missing patterns                                          none
-   number of groups                                                       1
-   number of responses                                                   11
-   number of factors                                                      3
-   number of free coefficients                                           36
-   number of penalized coefficients                                       6
+<p>Unlike traditional SEM analysis, <code>lslx</code> fit the model into data under all the penalty levels considered. To summarize the fitting result, a selector to determine an optimal penalty level must be specified. Available selectors can be found in the section of Penalty Level Selection via <code>?lslx</code>. The following code summarize the fitting result under the penalty level selected by adjusted Bayesian information criterion (ABIC).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">lslx_sem<span class="op">$</span><span class="kw">summarize</span>(<span class="dt">selector =</span> <span class="st">&quot;abic&quot;</span>)</code></pre></div>
+<pre><code>General Information                                                            
+   number of observations                                 75
+   number of complete observations                        75
+   number of missing patterns                           none
+   number of groups                                        1
+   number of responses                                    11
+   number of factors                                       3
+   number of free coefficients                            36
+   number of penalized coefficients                        6
 
-Fitting Information                                                                           
-   penalty method                                                       mcp
-   lambda grid                                                   0.01 - 0.3
-   delta grid                                                           Inf
-   algorithm                                                         fisher
-   missing method                                                      none
-   tolerance for convergence                                          0.001
+Numerical Conditions                                                            
+   selected lambda                                     0.058
+   selected delta                                       none
+   objective value                                     0.806
+   objective gradient absolute maximum                 0.001
+   objective Hessian convexity                         0.027
+   number of iterations                               11.000
+   loss value                                          0.593
+   number of non-zero coefficients                    42.000
+   degrees of freedom                                 35.000
+   robust degrees of freedom                             NaN
+   scaling factor                                        NaN
 
-Saturated Model Information                                                                           
-   loss value                                                         0.000
-   number of non-zero coefficients                                   77.000
-   degree of freedom                                                  0.000
-
-Baseline Model Information                                                                           
-   loss value                                                         9.739
-   number of non-zero coefficients                                   22.000
-   degree of freedom                                                 55.000
-
-Numerical Condition                                                                           
-   lambda                                                             0.010
-   delta                                                                Inf
-   objective value                                                    0.572
-   objective gradient absolute maximum                                0.000
-   objective Hessian convexity                                        0.029
-   number of iterations                                               3.000
-   loss value                                                         0.511
-   number of non-zero coefficients                                   42.000
-   degree of freedom                                                 35.000
-   robust degree of freedom                                             NaN
-   scaling factor                                                       NaN
-
-Information Criteria                                                                           
-   Akaike information criterion (aic)                                -0.423
-   Akaike information criterion with penalty 3 (aic3)                -0.889
-   consistent Akaike information criterion (caic)                    -1.971
-   Bayesian information criterion (bic)                              -1.504
-   adjusted Bayesian information criterion (abic)                    -0.033
-   Haughton Bayesian information criterion (hbic)                    -0.646
-   robust Akaike information criterion (raic)                           NaN
-   robust Akaike information criterion with penalty 3 (raic3)           NaN
-   robust consistent Akaike information criterion (rcaic)               NaN
-   robust Bayesian information criterion (rbic)                         NaN
-   robust adjusted Bayesian information criterion (rabic)               NaN
-   robust Haughton Bayesian information criterion (rhbic)               NaN
-
-Fit Indices                                                                           
-   root mean square error of approximation (rmsea)                    0.035
-   comparative fit index (cfi)                                        0.995
-   non-normed fit index (nnfi)                                        0.992
-   standardized root mean of residual (srmr)                          0.045
+Fit Indices                                                            
+   root mean square error of approximation (rmsea)     0.060
+   comparative fit index (cfi)                         0.986
+   non-normed fit index (nnfi)                         0.978
+   standardized root mean of residual (srmr)           0.049
 
 Likelihood Ratio Test
                     statistic         df    p-value
-   unadjusted          38.302     35.000      0.322
+   unadjusted          44.467     35.000      0.131
    mean-adjusted          -          -          -  
 
 Root Mean Square Error of Approximation Test
                      estimate      lower      upper
-   unadjusted           0.035      0.000      0.101
+   unadjusted           0.060      0.000      0.116
    mean-adjusted          -          -          -  
 
-Coefficient Test (Standard Error = &quot;observed_fisher&quot;, Alpha Level = 0.05)
+Coefficient Test (St.Error = &quot;observed_information&quot;)
   Factor Loading
                   type  estimate  std.error  z-value  p-value  lower  upper
     x1&lt;-ind60    fixed     1.000        -        -        -      -      -  
-    x2&lt;-ind60     free     2.181      0.139   15.665    0.000  1.908  2.453
-    x3&lt;-ind60     free     1.819      0.152   11.941    0.000  1.520  2.117
+    x2&lt;-ind60     free     2.181      0.139   15.678    0.000  1.908  2.454
+    x3&lt;-ind60     free     1.819      0.152   11.945    0.000  1.520  2.117
     y1&lt;-dem60    fixed     1.000        -        -        -      -      -  
-    y2&lt;-dem60     free     1.268      0.184    6.901    0.000  0.908  1.628
-    y3&lt;-dem60     free     1.060      0.148    7.156    0.000  0.769  1.350
-    y4&lt;-dem60     free     1.272      0.150    8.491    0.000  0.978  1.565
+    y2&lt;-dem60     free     1.318      0.181    7.279    0.000  0.963  1.673
+    y3&lt;-dem60     free     1.062      0.148    7.159    0.000  0.771  1.353
+    y4&lt;-dem60     free     1.301      0.148    8.765    0.000  1.010  1.592
     y5&lt;-dem65    fixed     1.000        -        -        -      -      -  
-    y6&lt;-dem65     free     1.192      0.170    7.002    0.000  0.859  1.526
-    y7&lt;-dem65     free     1.283      0.160    8.023    0.000  0.969  1.596
-    y8&lt;-dem65     free     1.272      0.163    7.824    0.000  0.953  1.591
+    y6&lt;-dem65     free     1.222      0.168    7.253    0.000  0.892  1.552
+    y7&lt;-dem65     free     1.293      0.159    8.128    0.000  0.981  1.604
+    y8&lt;-dem65     free     1.300      0.162    8.027    0.000  0.983  1.618
 
   Regression
                   type  estimate  std.error  z-value  p-value  lower  upper
- dem60&lt;-ind60     free     1.480      0.396    3.736    0.000  0.703  2.256
- dem65&lt;-ind60     free     0.564      0.232    2.437    0.007  0.110  1.019
- dem65&lt;-dem60     free     0.839      0.099    8.499    0.000  0.646  1.033
+ dem60&lt;-ind60     free     1.464      0.392    3.737    0.000  0.696  2.231
+ dem65&lt;-ind60     free     0.538      0.225    2.388    0.008  0.096  0.979
+ dem65&lt;-dem60     free     0.845      0.099    8.513    0.000  0.651  1.040
 
   Covariance
                   type  estimate  std.error  z-value  p-value  lower  upper
-      y5&lt;-&gt;y1      pen     0.612      0.363    1.686    0.046 -0.099  1.324
-      y4&lt;-&gt;y2      pen     1.185      0.671    1.765    0.039 -0.131  2.501
-      y6&lt;-&gt;y2      pen     2.011      0.693    2.901    0.002  0.652  3.369
-      y7&lt;-&gt;y3      pen     0.705      0.611    1.154    0.124 -0.493  1.903
-      y8&lt;-&gt;y4      pen     0.315      0.449    0.701    0.242 -0.565  1.194
-      y8&lt;-&gt;y6      pen     1.286      0.553    2.326    0.010  0.203  2.370
+      y5&lt;-&gt;y1      pen     0.534      0.331    1.614    0.053 -0.114  1.183
+      y4&lt;-&gt;y2      pen     0.578      0.605    0.956    0.170 -0.607  1.763
+      y6&lt;-&gt;y2      pen     1.310      0.607    2.159    0.015  0.121  2.499
+      y7&lt;-&gt;y3      pen     0.296      0.590    0.501    0.308 -0.861  1.452
+      y8&lt;-&gt;y4      pen     0.079      0.423    0.186    0.426 -0.751  0.908
+      y8&lt;-&gt;y6      pen     0.897      0.489    1.834    0.033 -0.062  1.856
 
   Variance
                   type  estimate  std.error  z-value  p-value  lower  upper
-ind60&lt;-&gt;ind60     free     0.454      0.088    5.168    0.000  0.282  0.627
-dem60&lt;-&gt;dem60     free     3.995      0.951    4.201    0.000  2.131  5.859
-dem65&lt;-&gt;dem65     free     0.171      0.220    0.779    0.218 -0.260  0.603
-      x1&lt;-&gt;x1     free     0.083      0.020    4.139    0.000  0.044  0.122
-      x2&lt;-&gt;x2     free     0.121      0.071    1.711    0.044 -0.018  0.261
+ind60&lt;-&gt;ind60     free     0.454      0.088    5.169    0.000  0.282  0.627
+dem60&lt;-&gt;dem60     free     3.933      0.929    4.233    0.000  2.112  5.754
+dem65&lt;-&gt;dem65     free     0.157      0.213    0.740    0.230 -0.260  0.574
+      x1&lt;-&gt;x1     free     0.083      0.020    4.137    0.000  0.044  0.122
+      x2&lt;-&gt;x2     free     0.121      0.071    1.703    0.044 -0.018  0.260
       x3&lt;-&gt;x3     free     0.473      0.090    5.232    0.000  0.296  0.651
-      y1&lt;-&gt;y1     free     1.920      0.463    4.152    0.000  1.014  2.827
-      y2&lt;-&gt;y2     free     7.185      1.284    5.597    0.000  4.669  9.701
-      y3&lt;-&gt;y3     free     5.106      0.960    5.316    0.000  3.224  6.989
-      y4&lt;-&gt;y4     free     3.097      0.733    4.226    0.000  1.661  4.534
-      y5&lt;-&gt;y5     free     2.377      0.485    4.901    0.000  1.427  3.328
-      y6&lt;-&gt;y6     free     4.854      0.859    5.649    0.000  3.170  6.538
-      y7&lt;-&gt;y7     free     3.438      0.718    4.788    0.000  2.031  4.846
-      y8&lt;-&gt;y8     free     3.216      0.688    4.675    0.000  1.868  4.564
+      y1&lt;-&gt;y1     free     1.946      0.425    4.581    0.000  1.114  2.779
+      y2&lt;-&gt;y2     free     6.337      1.084    5.844    0.000  4.212  8.463
+      y3&lt;-&gt;y3     free     5.131      0.933    5.501    0.000  3.303  6.960
+      y4&lt;-&gt;y4     free     2.809      0.649    4.327    0.000  1.536  4.081
+      y5&lt;-&gt;y5     free     2.372      0.453    5.232    0.000  1.483  3.261
+      y6&lt;-&gt;y6     free     4.327      0.727    5.952    0.000  2.902  5.752
+      y7&lt;-&gt;y7     free     3.393      0.682    4.979    0.000  2.058  4.729
+      y8&lt;-&gt;y8     free     2.928      0.603    4.855    0.000  1.746  4.110
 
   Intercept
                   type  estimate  std.error  z-value  p-value  lower  upper
         x1&lt;-1     free     0.000      0.085    0.000    0.500 -0.166  0.166
         x2&lt;-1     free     0.000      0.174    0.000    0.500 -0.342  0.342
         x3&lt;-1     free     0.000      0.162    0.000    0.500 -0.318  0.318
-        y1&lt;-1     free     0.000      0.304    0.000    0.500 -0.595  0.595
-        y2&lt;-1     free     0.000      0.450    0.000    0.500 -0.883  0.883
-        y3&lt;-1     free     0.000      0.378    0.000    0.500 -0.741  0.741
-        y4&lt;-1     free     0.000      0.386    0.000    0.500 -0.756  0.756
-        y5&lt;-1     free     0.000      0.302    0.000    0.500 -0.592  0.592
-        y6&lt;-1     free     0.000      0.387    0.000    0.500 -0.758  0.758
-        y7&lt;-1     free     0.000      0.379    0.000    0.500 -0.743  0.743
-        y8&lt;-1     free     0.000      0.373    0.000    0.500 -0.731  0.731</code></pre>
-<p>In this example, we can see that the PL estimate under the selected penalty level doesn’t contain any zero value, which indicates that all of the covariance of measurements are relevant. The <code>summarize</code> method also shows the result of significance tests for the coefficients. In <code>lslx</code>, the default standard errors are calculated based on sandwich formula whenever raw data is available. In this example, because raw data is not used for <code>lslx</code> object initialization, standarrd error is calculated by using observed Fisher information matrix. It may not be valid when the model is misspecified and the data are not normal. Also, it is generally invalid after choosing a penalty level.</p>
+        y1&lt;-1     free     0.000      0.302    0.000    0.500 -0.592  0.592
+        y2&lt;-1     free     0.000      0.445    0.000    0.500 -0.872  0.872
+        y3&lt;-1     free     0.000      0.377    0.000    0.500 -0.739  0.739
+        y4&lt;-1     free     0.000      0.385    0.000    0.500 -0.755  0.755
+        y5&lt;-1     free     0.000      0.300    0.000    0.500 -0.589  0.589
+        y6&lt;-1     free     0.000      0.381    0.000    0.500 -0.747  0.747
+        y7&lt;-1     free     0.000      0.379    0.000    0.500 -0.742  0.742
+        y8&lt;-1     free     0.000      0.372    0.000    0.500 -0.729  0.729</code></pre>
+<p>In this example, we can see that the PL estimate under the selected penalty level doesn’t contain any zero value, which indicates that all of the covariance of measurements are relevant. The <code>$summarize()</code> method also shows the result of significance tests for the coefficients. In <code>lslx</code>, the default standard errors are calculated based on sandwich formula whenever raw data is available. In this example, because raw data is not used for <code>lslx</code> object initialization, standard error is calculated by using observed Fisher information matrix. It may not be valid when the model is misspecified and the data are not normal. Also, it is generally invalid after choosing a penalty level.</p>
 </div>
 <div id="objects-extraction" class="section level2">
 <h2>Objects Extraction</h2>
 <p>In <code>lslx</code>, many quantities related to SEM can be extracted by extract-related method. For example, the coefficient estimate and its asymptotic variance can be obtained by</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">extract_coefficient</span>(<span class="dt">selector =</span> <span class="st">&quot;bic&quot;</span>)</code></pre></div>
-<pre><code>        x1&lt;-1|G         x2&lt;-1|G         x3&lt;-1|G         y1&lt;-1|G         y2&lt;-1|G         y3&lt;-1|G 
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">lslx_sem<span class="op">$</span><span class="kw">extract_coefficient</span>(<span class="dt">selector =</span> <span class="st">&quot;abic&quot;</span>, <span class="dt">type =</span> <span class="st">&quot;effective&quot;</span>)</code></pre></div>
+<pre><code>        x1&lt;-1/g         x2&lt;-1/g         x3&lt;-1/g         y1&lt;-1/g         y2&lt;-1/g         y3&lt;-1/g 
          0.0000          0.0000          0.0000          0.0000          0.0000          0.0000 
-        y4&lt;-1|G         y5&lt;-1|G         y6&lt;-1|G         y7&lt;-1|G         y8&lt;-1|G  dem60&lt;-ind60|G 
-         0.0000          0.0000          0.0000          0.0000          0.0000          1.4799 
- dem65&lt;-ind60|G  dem65&lt;-dem60|G     x1&lt;-ind60|G     x2&lt;-ind60|G     x3&lt;-ind60|G     y1&lt;-dem60|G 
-         0.5645          0.8391          1.0000          2.1805          1.8185          1.0000 
-    y2&lt;-dem60|G     y3&lt;-dem60|G     y4&lt;-dem60|G     y5&lt;-dem65|G     y6&lt;-dem65|G     y7&lt;-dem65|G 
-         1.2682          1.0596          1.2717          1.0000          1.1922          1.2828 
-    y8&lt;-dem65|G ind60&lt;-&gt;ind60|G dem60&lt;-&gt;dem60|G dem65&lt;-&gt;dem65|G       x1&lt;-&gt;x1|G       x2&lt;-&gt;x2|G 
-         1.2719          0.4545          3.9948          0.1714          0.0829          0.1215 
-      x3&lt;-&gt;x3|G       y1&lt;-&gt;y1|G       y5&lt;-&gt;y1|G       y2&lt;-&gt;y2|G       y4&lt;-&gt;y2|G       y6&lt;-&gt;y2|G 
-         0.4733          1.9203          0.6124          7.1852          1.1854          2.0109 
-      y3&lt;-&gt;y3|G       y7&lt;-&gt;y3|G       y4&lt;-&gt;y4|G       y8&lt;-&gt;y4|G       y5&lt;-&gt;y5|G       y6&lt;-&gt;y6|G 
-         5.1063          0.7051          3.0973          0.3146          2.3774          4.8543 
-      y8&lt;-&gt;y6|G       y7&lt;-&gt;y7|G       y8&lt;-&gt;y8|G 
-         1.2864          3.4384          3.2156 </code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">diag</span>(r6_lslx<span class="op">$</span><span class="kw">extract_coefficient_acov</span>(<span class="dt">selector =</span> <span class="st">&quot;bic&quot;</span>))</code></pre></div>
-<pre><code>        x1&lt;-1|G         x2&lt;-1|G         x3&lt;-1|G         y1&lt;-1|G         y2&lt;-1|G         y3&lt;-1|G 
-       0.007165        0.030431        0.026350        0.092137        0.202812        0.142779 
-        y4&lt;-1|G         y5&lt;-1|G         y6&lt;-1|G         y7&lt;-1|G         y8&lt;-1|G  dem60&lt;-ind60|G 
-       0.148890        0.091261        0.149386        0.143854        0.139237        0.156929 
- dem65&lt;-ind60|G  dem65&lt;-dem60|G     x1&lt;-ind60|G     x2&lt;-ind60|G     x3&lt;-ind60|G     y1&lt;-dem60|G 
-       0.053667        0.009748              NA        0.019375        0.023195              NA 
-    y2&lt;-dem60|G     y3&lt;-dem60|G     y4&lt;-dem60|G     y5&lt;-dem65|G     y6&lt;-dem65|G     y7&lt;-dem65|G 
-       0.033772        0.021924        0.022429              NA        0.028990        0.025562 
-    y8&lt;-dem65|G ind60&lt;-&gt;ind60|G dem60&lt;-&gt;dem60|G dem65&lt;-&gt;dem65|G       x1&lt;-&gt;x1|G       x2&lt;-&gt;x2|G 
-       0.026431        0.007734        0.904346        0.048399        0.000401        0.005045 
-      x3&lt;-&gt;x3|G       y1&lt;-&gt;y1|G       y5&lt;-&gt;y1|G       y2&lt;-&gt;y2|G       y4&lt;-&gt;y2|G       y6&lt;-&gt;y2|G 
-       0.008183        0.213933        0.131906        1.647994        0.450813        0.480474 
-      y3&lt;-&gt;y3|G       y7&lt;-&gt;y3|G       y4&lt;-&gt;y4|G       y8&lt;-&gt;y4|G       y5&lt;-&gt;y5|G       y6&lt;-&gt;y6|G 
-       0.922531        0.373563        0.537139        0.201409        0.235288        0.738362 
-      y8&lt;-&gt;y6|G       y7&lt;-&gt;y7|G       y8&lt;-&gt;y8|G 
-       0.305785        0.515648        0.473059 </code></pre>
-<p>The <code>NA</code> standard errors mean that the corresponding coefficients are fixed or identified as zero by penalty.</p>
+        y4&lt;-1/g         y5&lt;-1/g         y6&lt;-1/g         y7&lt;-1/g         y8&lt;-1/g  dem60&lt;-ind60/g 
+         0.0000          0.0000          0.0000          0.0000          0.0000          1.4636 
+ dem65&lt;-ind60/g  dem65&lt;-dem60/g     x2&lt;-ind60/g     x3&lt;-ind60/g     y2&lt;-dem60/g     y3&lt;-dem60/g 
+         0.5376          0.8453          2.1809          1.8186          1.3178          1.0622 
+    y4&lt;-dem60/g     y6&lt;-dem65/g     y7&lt;-dem65/g     y8&lt;-dem65/g ind60&lt;-&gt;ind60/g dem60&lt;-&gt;dem60/g 
+         1.3013          1.2221          1.2928          1.3003          0.4544          3.9330 
+dem65&lt;-&gt;dem65/g       x1&lt;-&gt;x1/g       x2&lt;-&gt;x2/g       x3&lt;-&gt;x3/g       y1&lt;-&gt;y1/g       y5&lt;-&gt;y1/g 
+         0.1574          0.0828          0.1209          0.4732          1.9464          0.5343 
+      y2&lt;-&gt;y2/g       y4&lt;-&gt;y2/g       y6&lt;-&gt;y2/g       y3&lt;-&gt;y3/g       y7&lt;-&gt;y3/g       y4&lt;-&gt;y4/g 
+         6.3371          0.5779          1.3101          5.1312          0.2958          2.8085 
+      y8&lt;-&gt;y4/g       y5&lt;-&gt;y5/g       y6&lt;-&gt;y6/g       y8&lt;-&gt;y6/g       y7&lt;-&gt;y7/g       y8&lt;-&gt;y8/g 
+         0.0786          2.3721          4.3268          0.8972          3.3935          2.9279 </code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">diag</span>(lslx_sem<span class="op">$</span><span class="kw">extract_coefficient_acov</span>(<span class="dt">selector =</span> <span class="st">&quot;abic&quot;</span>, <span class="dt">type =</span> <span class="st">&quot;effective&quot;</span>))</code></pre></div>
+<pre><code>        x1&lt;-1/g         x2&lt;-1/g         x3&lt;-1/g         y1&lt;-1/g         y2&lt;-1/g         y3&lt;-1/g 
+        0.00716         0.03043         0.02635         0.09137         0.19809         0.14223 
+        y4&lt;-1/g         y5&lt;-1/g         y6&lt;-1/g         y7&lt;-1/g         y8&lt;-1/g  dem60&lt;-ind60/g 
+        0.14822         0.09028         0.14529         0.14327         0.13820         0.15335 
+ dem65&lt;-ind60/g  dem65&lt;-dem60/g     x2&lt;-ind60/g     x3&lt;-ind60/g     y2&lt;-dem60/g     y3&lt;-dem60/g 
+        0.05068         0.00986         0.01935         0.02318         0.03277         0.02202 
+    y4&lt;-dem60/g     y6&lt;-dem65/g     y7&lt;-dem65/g     y8&lt;-dem65/g ind60&lt;-&gt;ind60/g dem60&lt;-&gt;dem60/g 
+        0.02204         0.02839         0.02530         0.02624         0.00773         0.86325 
+dem65&lt;-&gt;dem65/g       x1&lt;-&gt;x1/g       x2&lt;-&gt;x2/g       x3&lt;-&gt;x3/g       y1&lt;-&gt;y1/g       y5&lt;-&gt;y1/g 
+        0.04528         0.00040         0.00504         0.00818         0.18051         0.10951 
+      y2&lt;-&gt;y2/g       y4&lt;-&gt;y2/g       y6&lt;-&gt;y2/g       y3&lt;-&gt;y3/g       y7&lt;-&gt;y3/g       y4&lt;-&gt;y4/g 
+        1.17603         0.36547         0.36809         0.87023         0.34822         0.42131 
+      y8&lt;-&gt;y4/g       y5&lt;-&gt;y5/g       y6&lt;-&gt;y6/g       y8&lt;-&gt;y6/g       y7&lt;-&gt;y7/g       y8&lt;-&gt;y8/g 
+        0.17928         0.20555         0.52839         0.23931         0.46453         0.36374 </code></pre>
+<p>Here, the <code>type</code> argument is used to specify which types of parameters are used to calculate related quantities. <code>type = &quot;effective&quot;</code> indicates that only freely estimated and penalized non-zero parameters are used. By default, <code>type = &quot;all&quot;</code></p>
 </div>
 
 

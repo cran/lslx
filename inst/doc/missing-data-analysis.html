@@ -13,7 +13,7 @@
 <meta name="author" content="Po-Hsien Huang" />
 
 
-<title>Semi-Confirmatory Factor Analysis with Missing Data</title>
+<title>Factor Analysis with Missing Data</title>
 
 
 
@@ -67,183 +67,165 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 
 
-<h1 class="title toc-ignore">Semi-Confirmatory Factor Analysis with Missing Data</h1>
+<h1 class="title toc-ignore">Factor Analysis with Missing Data</h1>
 <h4 class="author"><em>Po-Hsien Huang</em></h4>
 
 
 
-<p>In this example, we will show how to use <code>lslx</code> to conduct semi-confirmatory factor analysis. The example uses data <code>HolzingerSwineford1939</code> in the package <code>lavaan</code>. Hence, <code>lavaan</code> must be installed.</p>
+<p>In this example, we will show how to use <code>lslx</code> to conduct semi-confirmatory factor analysis with missing data. The example uses data <code>HolzingerSwineford1939</code> in the package <code>lavaan</code>. Hence, <code>lavaan</code> must be installed.</p>
 <div id="missing-data-construction" class="section level2">
 <h2>Missing Data Construction</h2>
-<p>Because <code>HolzingerSwineford1939</code> doesn’t contain missing values, we use the code in <code>semTools</code> to create <code>NA</code> (see the example of <code>twostage</code> function in <code>semTools</code>).</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data &lt;-<span class="st"> </span>lavaan<span class="op">::</span>HolzingerSwineford1939
-data<span class="op">$</span>x5 &lt;-<span class="st"> </span><span class="kw">ifelse</span>(data<span class="op">$</span>x1 <span class="op">&lt;=</span><span class="st"> </span><span class="kw">quantile</span>(data<span class="op">$</span>x1, .<span class="dv">3</span>), <span class="ot">NA</span>, data<span class="op">$</span>x5)
-data<span class="op">$</span>age &lt;-<span class="st"> </span>data<span class="op">$</span>ageyr <span class="op">+</span><span class="st"> </span>data<span class="op">$</span>agemo<span class="op">/</span><span class="dv">12</span>
-data<span class="op">$</span>x9 &lt;-<span class="st"> </span><span class="kw">ifelse</span>(data<span class="op">$</span>age <span class="op">&lt;=</span><span class="st"> </span><span class="kw">quantile</span>(data<span class="op">$</span>age, .<span class="dv">3</span>), <span class="ot">NA</span>, data<span class="op">$</span>x9)</code></pre></div>
+<p>Because <code>HolzingerSwineford1939</code> doesn’t contain missing values, we use the code in <code>semTools</code> to create <code>NA</code> (see the example of <code>twostage()</code> function in <code>semTools</code>).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data_miss &lt;-<span class="st"> </span>lavaan<span class="op">::</span>HolzingerSwineford1939
+data_miss<span class="op">$</span>x5 &lt;-<span class="st"> </span><span class="kw">ifelse</span>(data_miss<span class="op">$</span>x1 <span class="op">&lt;=</span><span class="st"> </span><span class="kw">quantile</span>(data_miss<span class="op">$</span>x1, .<span class="dv">3</span>), 
+                       <span class="ot">NA</span>, data_miss<span class="op">$</span>x5)
+data_miss<span class="op">$</span>age &lt;-<span class="st"> </span>data_miss<span class="op">$</span>ageyr <span class="op">+</span><span class="st"> </span>data_miss<span class="op">$</span>agemo<span class="op">/</span><span class="dv">12</span>
+data_miss<span class="op">$</span>x9 &lt;-<span class="st"> </span><span class="kw">ifelse</span>(data_miss<span class="op">$</span>age <span class="op">&lt;=</span><span class="st"> </span><span class="kw">quantile</span>(data_miss<span class="op">$</span>age, .<span class="dv">3</span>), 
+                       <span class="ot">NA</span>, data_miss<span class="op">$</span>x9)</code></pre></div>
 <p>By the construction, we can see that the missingness of <code>x5</code> depends on the value of <code>x1</code> and the missingness of <code>x9</code> relies on the <code>age</code> variable. Note that <code>age</code> is created by <code>ageyr</code> and <code>agemo</code>. Since <code>ageyr</code> and <code>agemo</code> are not the variables that we are interested, the two variables are treated as auxiliary in the later analysis.</p>
 </div>
-<div id="model-sepcification-and-object-initialization" class="section level2">
-<h2>Model Sepcification and Object Initialization</h2>
-<p>The following model specification is the same to our example of semi-confirmatory factor analysis (see <code>vignette(&quot;factor-analysis&quot;)</code>).</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model &lt;-
-<span class="st">'</span>
-<span class="st">visual  :=&gt; x1 + x2 + x3</span>
-<span class="st">textual :=&gt; x4 + x5 + x6</span>
-<span class="st">speed   :=&gt; x7 + x8 + x9</span>
-<span class="st">visual  :~&gt; x4 + x5 + x6 + x7 + x8 + x9 </span>
-<span class="st">textual :~&gt; x1 + x2 + x3 + x7 + x8 + x9 </span>
-<span class="st">speed   :~&gt; x1 + x2 + x3 + x4 + x5 + x6 </span>
-<span class="st">visual  &lt;=&gt; fix(1) * visual</span>
-<span class="st">textual &lt;=&gt; fix(1) * textual</span>
-<span class="st">speed   &lt;=&gt; fix(1) * speed</span>
-<span class="st">'</span></code></pre></div>
-<p>To initialize an <code>lslx</code> object with auxiliary variables, we need to specify the <code>auxiliary_variable</code> argument. <code>auxiliary_variable</code> argument only accepts numeric variables. If any categorical variable ia considered as a valid auxiliary variable, user should transform it as a set of dummy variables first. One possible method is using <code>model.matrix</code> function.</p>
+<div id="model-specification-and-object-initialization" class="section level2">
+<h2>Model Specification and Object Initialization</h2>
+<p>A usual confirmatory factor analysis (CFA) model is specified.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model_miss &lt;-<span class="st"> &quot;visual  :=&gt; x1 + x2 + x3</span>
+<span class="st">               textual :=&gt; x4 + x5 + x6</span>
+<span class="st">               speed   :=&gt; x7 + x8 + x9</span>
+<span class="st">               visual  &lt;=&gt; 1 * visual</span>
+<span class="st">               textual &lt;=&gt; 1 * textual</span>
+<span class="st">               speed   &lt;=&gt; 1 * speed&quot;</span></code></pre></div>
+<p>Here, <code>1</code> before <code>*</code> will be interpreted as <code>fix(1)</code>. To initialize an <code>lslx</code> object with auxiliary variables, we need to specify the <code>auxiliary_variable</code> argument. The <code>auxiliary_variable</code> argument only accepts numeric variables. If any categorical variable is considered as a valid auxiliary variable, user should transform it as a set of dummy variables first. One possible method is using <code>model.matrix</code> function.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(lslx)
-r6_lslx &lt;-<span class="st"> </span>lslx<span class="op">$</span><span class="kw">new</span>(<span class="dt">model =</span> model,
-                    <span class="dt">data =</span> data,
-                    <span class="dt">auxiliary_variable =</span> <span class="kw">c</span>(<span class="st">&quot;ageyr&quot;</span>, <span class="st">&quot;agemo&quot;</span>))</code></pre></div>
-<pre><code>An 'lslx' R6 class is initialized via 'data'.
-  Response Variable(s): x1 x2 x3 x4 x5 x6 x7 x8 x9 
-  Latent Factor(s): visual textual speed 
-  Auxiliary Variable(s): ageyr agemo </code></pre>
+lslx_miss &lt;-<span class="st"> </span>lslx<span class="op">$</span><span class="kw">new</span>(<span class="dt">model =</span> model_miss, <span class="dt">data =</span> data_miss,
+                      <span class="dt">auxiliary_variable =</span> <span class="kw">c</span>(<span class="st">&quot;ageyr&quot;</span>, <span class="st">&quot;agemo&quot;</span>))</code></pre></div>
+<pre><code>An 'lslx' R6 class is initialized via 'data' argument. 
+  Response Variables: x1 x2 x3 x4 x5 x6 x7 x8 x9 
+  Latent Factors: visual textual speed 
+  Auxiliary Variables: ageyr agemo </code></pre>
+<p>Because the specified CFA might not fit the data well, we add a correlated residual structure to the model by <code>$penalize_block()</code></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">lslx_miss<span class="op">$</span><span class="kw">penalize_block</span>(<span class="dt">block =</span> <span class="st">&quot;y&lt;-&gt;y&quot;</span>, <span class="dt">type =</span> <span class="st">&quot;fixed&quot;</span>, <span class="dt">verbose =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<p>The code penalizes all the coefficients in <code>y&lt;-&gt;y</code> block with fixed parameter type. Note that this model is not identified under the usual SEM framework. PL method can still estimate it because the penalty function introduces additional constraints on parameters. However, we don’t recommend using such type of model because it is difficult to be interpreted.</p>
 </div>
 <div id="model-fitting" class="section level2">
 <h2>Model Fitting</h2>
-<p>So far, the specified auxiliary variables are only stored in <code>lslx</code> object. They are actually used after implementing the <code>fit</code> related methods.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">fit</span>(<span class="dt">penalty_method =</span> <span class="st">&quot;mcp&quot;</span>,
-            <span class="dt">lambda_grid =</span> <span class="kw">seq</span>(.<span class="dv">01</span>, .<span class="dv">30</span>, .<span class="dv">01</span>),
-            <span class="dt">delta_grid =</span> <span class="kw">c</span>(<span class="dv">5</span>, <span class="dv">10</span>))</code></pre></div>
-<pre><code>CONGRATS: The algorithm converged under all specified penalty levels. 
+<p>So far, the specified auxiliary variables are only stored in <code>lslx</code> object. They are actually used after implementing the <code>$fit()</code> related methods.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">lslx_miss<span class="op">$</span><span class="kw">fit_lasso</span>()</code></pre></div>
+<pre><code>CONGRATS: Algorithm converges under EVERY specified penalty level.
   Specified Tolerance for Convergence: 0.001 
   Specified Maximal Number of Iterations: 100 </code></pre>
-<p>By default, <code>fit</code> related methods implement two-step method (possibly with auxiliary variables) for handling missing values. User can specify the missing method explicitly via <code>missing_method</code> argument. Another missing method in the current version is listwise deletion. However, listwise deletion has no theoretical advantages over the two step method.</p>
+<p>By default, <code>fit</code> related methods implement two-step method (possibly with auxiliary variables) for handling missing values. User can specify the missing method explicitly via <code>missing_method</code> argument. Another missing method in the current version is listwise deletion. However, listwise deletion has no theoretical advantages over the two-step method.</p>
 </div>
 <div id="model-summarizing" class="section level2">
 <h2>Model Summarizing</h2>
-<p>The following code summarizes the fitting result under the penalty level selected by Bayesian information criterion (BIC). The <code>number of missing pattern</code> shows how many missing patterns present in the data set (include the complete pattern). If the <code>lslx</code> object is initialized via raw data, by default, a corrected sandwich standard error will be used for coefficient test. The correction is based on the asymptotic covariance of saturated derived by full information maximum likelihood. Also, the mean adjusted likelihood ratio test is based on this quantity. For the reference, please see the section of Missing Data in <code>?lslx</code></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">r6_lslx<span class="op">$</span><span class="kw">summarize</span>(<span class="dt">selector =</span> <span class="st">&quot;bic&quot;</span>)</code></pre></div>
-<pre><code>General Information                                                                           
-   number of observations                                           301.000
-   number of complete observations                                  138.000
-   number of missing patterns                                         4.000
-   number of groups                                                   1.000
-   number of responses                                                9.000
-   number of factors                                                  3.000
-   number of free coefficients                                       30.000
-   number of penalized coefficients                                  18.000
+<p>The following code summarizes the fitting result under the penalty level selected by a Robust version of Akaike information criterion (RAIC). The <code>number of missing patterns</code> shows how many missing patterns present in the data set (include the complete pattern). If the <code>lslx</code> object is initialized via raw data, by default, a corrected sandwich standard error will be used for coefficient test. The correction is based on the asymptotic covariance of saturated moments derived by full information maximum likelihood. Also, the mean adjusted likelihood ratio test is based on this quantity. For the reference, please see the section of Missing Data in <code>?lslx</code>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">lslx_miss<span class="op">$</span><span class="kw">summarize</span>(<span class="dt">selector =</span> <span class="st">&quot;raic&quot;</span>)</code></pre></div>
+<pre><code>General Information                                                             
+   number of observations                             301.000
+   number of complete observations                    138.000
+   number of missing patterns                           4.000
+   number of groups                                     1.000
+   number of responses                                  9.000
+   number of factors                                    3.000
+   number of free coefficients                         30.000
+   number of penalized coefficients                    36.000
 
-Fitting Information                                                                           
-   penalty method                                                       mcp
-   lambda grid                                                   0.01 - 0.3
-   delta grid                                                        5 - 10
-   algorithm                                                         fisher
-   missing method                                                 two stage
-   tolerance for convergence                                          0.001
+Numerical Conditions                                                             
+   selected lambda                                      0.130
+   selected delta                                        none
+   objective value                                      0.168
+   objective gradient absolute maximum                  0.001
+   objective Hessian convexity                          0.741
+   number of iterations                                 2.000
+   loss value                                           0.051
+   number of non-zero coefficients                     41.000
+   degrees of freedom                                  13.000
+   robust degrees of freedom                           16.173
+   scaling factor                                       1.244
 
-Saturated Model Information                                                                           
-   loss value                                                         0.000
-   number of non-zero coefficients                                   54.000
-   degree of freedom                                                  0.000
-
-Baseline Model Information                                                                           
-   loss value                                                         2.937
-   number of non-zero coefficients                                   18.000
-   degree of freedom                                                 36.000
-
-Numerical Condition                                                                           
-   lambda                                                             0.150
-   delta                                                              5.000
-   objective value                                                    0.214
-   objective gradient absolute maximum                                0.000
-   objective Hessian convexity                                        0.683
-   number of iterations                                               3.000
-   loss value                                                         0.151
-   number of non-zero coefficients                                   33.000
-   degree of freedom                                                 21.000
-   robust degree of freedom                                          26.715
-   scaling factor                                                     1.272
-
-Information Criteria                                                                           
-   Akaike information criterion (aic)                                 0.012
-   Akaike information criterion with penalty 3 (aic3)                -0.058
-   consistent Akaike information criterion (caic)                    -0.317
-   Bayesian information criterion (bic)                              -0.247
-   adjusted Bayesian information criterion (abic)                    -0.026
-   Haughton Bayesian information criterion (hbic)                    -0.119
-   robust Akaike information criterion (raic)                        -0.026
-   robust Akaike information criterion with penalty 3 (raic3)        -0.115
-   robust consistent Akaike information criterion (rcaic)            -0.444
-   robust Bayesian information criterion (rbic)                      -0.355
-   robust adjusted Bayesian information criterion (rabic)            -0.074
-   robust Haughton Bayesian information criterion (rhbic)            -0.192
-
-Fit Indices                                                                           
-   root mean square error of approximation (rmsea)                    0.062
-   comparative fit index (cfi)                                        0.971
-   non-normed fit index (nnfi)                                        0.950
-   standardized root mean of residual (srmr)                          0.040
+Fit Indices                                                             
+   root mean square error of approximation (rmsea)      0.025
+   comparative fit index (cfi)                          0.997
+   non-normed fit index (nnfi)                          0.992
+   standardized root mean of residual (srmr)            0.032
 
 Likelihood Ratio Test
                     statistic         df    p-value
-   unadjusted          45.502     21.000      0.001
-   mean-adjusted       35.768     21.000      0.023
+   unadjusted          15.371     13.000      0.285
+   mean-adjusted       12.355     13.000      0.499
 
 Root Mean Square Error of Approximation Test
                      estimate      lower      upper
-   unadjusted           0.062      0.032      0.092
-   mean-adjusted        0.055      0.006      0.090
+   unadjusted           0.025      0.000      0.071
+   mean-adjusted        0.000      0.000      0.068
 
-Coefficient Test (Standard Error = &quot;sandwich&quot;, Alpha Level = 0.05)
+Coefficient Test (St.Error = &quot;sandwich&quot;)
   Factor Loading
                       type  estimate  std.error  z-value  p-value  lower  upper
-       x1&lt;-visual     free     0.935      0.107    8.701    0.000  0.724  1.146
-       x2&lt;-visual     free     0.475      0.094    5.065    0.000  0.291  0.658
-       x3&lt;-visual     free     0.630      0.082    7.681    0.000  0.469  0.791
-       x4&lt;-visual      pen     0.000        -        -        -      -      -  
-       x5&lt;-visual      pen    -0.160      0.119   -1.345    0.089 -0.393  0.073
-       x6&lt;-visual      pen     0.000        -        -        -      -      -  
-       x7&lt;-visual      pen    -0.084      0.101   -0.835    0.202 -0.281  0.113
-       x8&lt;-visual      pen     0.000        -        -        -      -      -  
-       x9&lt;-visual      pen     0.230      0.080    2.886    0.002  0.074  0.385
-      x1&lt;-textual      pen     0.000        -        -        -      -      -  
-      x2&lt;-textual      pen     0.000        -        -        -      -      -  
-      x3&lt;-textual      pen     0.000        -        -        -      -      -  
-      x4&lt;-textual     free     0.978      0.062   15.839    0.000  0.857  1.099
-      x5&lt;-textual     free     1.130      0.079   14.281    0.000  0.975  1.285
-      x6&lt;-textual     free     0.917      0.059   15.651    0.000  0.802  1.031
-      x7&lt;-textual      pen     0.000        -        -        -      -      -  
-      x8&lt;-textual      pen     0.000        -        -        -      -      -  
-      x9&lt;-textual      pen     0.000        -        -        -      -      -  
-        x1&lt;-speed      pen     0.000        -        -        -      -      -  
-        x2&lt;-speed      pen     0.000        -        -        -      -      -  
-        x3&lt;-speed      pen     0.000        -        -        -      -      -  
-        x4&lt;-speed      pen     0.000        -        -        -      -      -  
-        x5&lt;-speed      pen     0.000        -        -        -      -      -  
-        x6&lt;-speed      pen     0.000        -        -        -      -      -  
-        x7&lt;-speed     free     0.721      0.101    7.163    0.000  0.524  0.918
-        x8&lt;-speed     free     0.766      0.084    9.164    0.000  0.602  0.930
-        x9&lt;-speed     free     0.461      0.072    6.398    0.000  0.320  0.603
+       x1&lt;-visual     free     0.920      0.092    9.990    0.000  0.740  1.101
+       x2&lt;-visual     free     0.441      0.079    5.564    0.000  0.286  0.597
+       x3&lt;-visual     free     0.607      0.070    8.636    0.000  0.469  0.745
+      x4&lt;-textual     free     0.974      0.063   15.584    0.000  0.852  1.097
+      x5&lt;-textual     free     1.057      0.063   16.739    0.000  0.933  1.180
+      x6&lt;-textual     free     0.920      0.059   15.687    0.000  0.805  1.035
+        x7&lt;-speed     free     0.438      0.094    4.670    0.000  0.254  0.622
+        x8&lt;-speed     free     0.527      0.093    5.635    0.000  0.343  0.710
+        x9&lt;-speed     free     0.799      0.092    8.659    0.000  0.618  0.980
 
   Covariance
                       type  estimate  std.error  z-value  p-value  lower  upper
- textual&lt;-&gt;visual     free     0.463      0.070    6.574    0.000  0.325  0.601
-   speed&lt;-&gt;visual     free     0.332      0.085    3.885    0.000  0.164  0.499
-  speed&lt;-&gt;textual     free     0.220      0.081    2.707    0.003  0.061  0.379
+ textual&lt;-&gt;visual     free     0.486      0.075    6.501    0.000  0.340  0.633
+   speed&lt;-&gt;visual     free     0.568      0.077    7.409    0.000  0.417  0.718
+  speed&lt;-&gt;textual     free     0.243      0.089    2.733    0.003  0.069  0.417
+          x2&lt;-&gt;x1      pen     0.000        -        -        -      -      -  
+          x3&lt;-&gt;x1      pen     0.000        -        -        -      -      -  
+          x4&lt;-&gt;x1      pen     0.048      0.050    0.962    0.168 -0.050  0.147
+          x5&lt;-&gt;x1      pen    -0.112      0.089   -1.254    0.105 -0.286  0.063
+          x6&lt;-&gt;x1      pen     0.000        -        -        -      -      -  
+          x7&lt;-&gt;x1      pen    -0.080      0.063   -1.267    0.103 -0.204  0.044
+          x8&lt;-&gt;x1      pen     0.000        -        -        -      -      -  
+          x9&lt;-&gt;x1      pen     0.000        -        -        -      -      -  
+          x3&lt;-&gt;x2      pen     0.103      0.074    1.389    0.082 -0.043  0.249
+          x4&lt;-&gt;x2      pen     0.000        -        -        -      -      -  
+          x5&lt;-&gt;x2      pen     0.000        -        -        -      -      -  
+          x6&lt;-&gt;x2      pen     0.000        -        -        -      -      -  
+          x7&lt;-&gt;x2      pen    -0.105      0.058   -1.826    0.034 -0.218  0.008
+          x8&lt;-&gt;x2      pen     0.000        -        -        -      -      -  
+          x9&lt;-&gt;x2      pen     0.000        -        -        -      -      -  
+          x4&lt;-&gt;x3      pen     0.000        -        -        -      -      -  
+          x5&lt;-&gt;x3      pen    -0.079      0.060   -1.320    0.093 -0.196  0.038
+          x6&lt;-&gt;x3      pen     0.000        -        -        -      -      -  
+          x7&lt;-&gt;x3      pen     0.000        -        -        -      -      -  
+          x8&lt;-&gt;x3      pen     0.000        -        -        -      -      -  
+          x9&lt;-&gt;x3      pen     0.000        -        -        -      -      -  
+          x5&lt;-&gt;x4      pen     0.000        -        -        -      -      -  
+          x6&lt;-&gt;x4      pen     0.000        -        -        -      -      -  
+          x7&lt;-&gt;x4      pen     0.079      0.043    1.854    0.032 -0.005  0.163
+          x8&lt;-&gt;x4      pen     0.000        -        -        -      -      -  
+          x9&lt;-&gt;x4      pen     0.000        -        -        -      -      -  
+          x6&lt;-&gt;x5      pen     0.000        -        -        -      -      -  
+          x7&lt;-&gt;x5      pen     0.000        -        -        -      -      -  
+          x8&lt;-&gt;x5      pen     0.000        -        -        -      -      -  
+          x9&lt;-&gt;x5      pen     0.008      0.065    0.121    0.452 -0.120  0.136
+          x7&lt;-&gt;x6      pen     0.000        -        -        -      -      -  
+          x8&lt;-&gt;x6      pen     0.013      0.042    0.298    0.383 -0.070  0.095
+          x9&lt;-&gt;x6      pen    -0.017      0.048   -0.356    0.361 -0.111  0.077
+          x8&lt;-&gt;x7      pen     0.253      0.072    3.527    0.000  0.113  0.394
+          x9&lt;-&gt;x7      pen     0.000        -        -        -      -      -  
+          x9&lt;-&gt;x8      pen     0.000        -        -        -      -      -  
 
   Variance
                       type  estimate  std.error  z-value  p-value  lower  upper
   visual&lt;-&gt;visual    fixed     1.000        -        -        -      -      -  
 textual&lt;-&gt;textual    fixed     1.000        -        -        -      -      -  
     speed&lt;-&gt;speed    fixed     1.000        -        -        -      -      -  
-          x1&lt;-&gt;x1     free     0.461      0.186    2.474    0.007  0.096  0.826
-          x2&lt;-&gt;x2     free     1.150      0.116    9.893    0.000  0.922  1.378
-          x3&lt;-&gt;x3     free     0.867      0.099    8.795    0.000  0.674  1.061
-          x4&lt;-&gt;x4     free     0.389      0.053    7.274    0.000  0.284  0.494
-          x5&lt;-&gt;x5     free     0.395      0.070    5.652    0.000  0.258  0.531
-          x6&lt;-&gt;x6     free     0.351      0.046    7.641    0.000  0.261  0.441
-          x7&lt;-&gt;x7     free     0.688      0.115    6.003    0.000  0.463  0.913
-          x8&lt;-&gt;x8     free     0.433      0.112    3.882    0.000  0.214  0.652
-          x9&lt;-&gt;x9     free     0.618      0.076    8.094    0.000  0.468  0.768
+          x1&lt;-&gt;x1     free     0.474      0.143    3.304    0.000  0.193  0.754
+          x2&lt;-&gt;x2     free     1.150      0.108   10.680    0.000  0.939  1.361
+          x3&lt;-&gt;x3     free     0.878      0.077   11.469    0.000  0.728  1.028
+          x4&lt;-&gt;x4     free     0.388      0.053    7.308    0.000  0.284  0.491
+          x5&lt;-&gt;x5     free     0.410      0.064    6.435    0.000  0.285  0.535
+          x6&lt;-&gt;x6     free     0.348      0.046    7.497    0.000  0.257  0.439
+          x7&lt;-&gt;x7     free     0.930      0.086   10.856    0.000  0.762  1.098
+          x8&lt;-&gt;x8     free     0.719      0.090    8.016    0.000  0.543  0.895
+          x9&lt;-&gt;x9     free     0.335      0.137    2.442    0.007  0.066  0.604
 
   Intercept
                       type  estimate  std.error  z-value  p-value  lower  upper

@@ -1,7 +1,8 @@
-#' Semi-Confirmatory Structural Equation Modeling via Penalized Likelihood
+#' R6 class for semi-confirmatory structural equation modeling via penalized likelihood
 #'
 #' @docType class
 #' @useDynLib lslx
+#' @import stats
 #' @importFrom Rcpp sourceCpp
 #' @importFrom R6 R6Class
 #' @keywords NULL
@@ -43,7 +44,7 @@
 #' By implementing a sparsity-inducing penalty and choosing an optimal penalty level, the relationships in the exploratory part can be efficiently identified by the sparsity pattern of these penalized parameters.
 #'
 #' The main function \code{lslx} generates an object of \code{lslx} R6 class.
-#' R6 class is established via package \pkg{R6} (Chang, 2017) that facilitates encapsulation object oriented programming in \pkg{R} system.
+#' R6 class is established via package \pkg{R6} (Chang, 2017) that facilitates encapsulation object-oriented programming in \pkg{R} system.
 #' Hence, the \code{lslx} object is self-contained.
 #' On the one hand, \code{lslx} object stores model, data, and fitting results.
 #' On the other hand, it has many built-in methods to respecify model, fit the model to data, and test goodness of fit and coefficients.
@@ -53,8 +54,8 @@
 #'
 #' In the current semi-confirmatory approach, the model specification is quite similar to the traditional practice of SEM except that some parameters can be set as penalized.
 #' Model specification in \code{lslx} mainly relies on the argument model when creating a new \code{lslx} object.
-#' After a \code{lslx} object is initialized, the intialized model can be still modified by set-related methods.
-#' These set-related methods may hugely change the intialized model by just one simple command.
+#' After a \code{lslx} object is initialized, the initialized model can be still modified by set-related methods.
+#' These set-related methods may hugely change the initialized model by just one simple command.
 #' This two-step approach allows users specifying their own models flexibly and efficiently.
 #' Details of the model specification can be found in the sections of \emph{Model Syntax} and \emph{Set-Related Methods}.
 #'
@@ -62,17 +63,17 @@
 #' The penalty function can be set as lasso (Tibshirani, 1996) or mcp (minimax concave penalty; Zhang, 2010).
 #' \pkg{lslx} solves the optimization problem based on an improved \pkg{glmnet} method (Friedman, Hastie, & Tibshirani, 2010) made by Yuan, Ho, and Lin (2012).
 #' The underlying optimizer is written by using \pkg{Rcpp} (Eddelbuettel & Francois, 2011) and \pkg{RcppEigen} (Bates & Eddelbuettel, 2013).
-#' Our experiences show that the algorithm can effeciently find a local minimum provided that (1) the starting value is reasonable, and (2) the saturated covariance matrix is not nearly singular.
+#' Our experiences show that the algorithm can efficiently find a local minimum provided that (1) the starting value is reasonable, and (2) the saturated covariance matrix is not nearly singular.
 #' Details of optimization algorithm and how to implement the algorithm can be found in the sections of \emph{Optimization Algorithm} and \emph{Fit-Related Methods}.
 #'
 #' When conducting SEM, missing data are easily encountered.
 #' \pkg{lslx} can handle missing data problem by listwise deletion and two-step methods.
-#' Details of the methods for mssing data can be found in the section of \emph{Missing Data}.
+#' Details of the methods for missing data can be found in the section of \emph{Missing Data}.
 #'
 #' After fitting the specified model to data under all of the considered penalty levels, an optimal penalty level should be chosen.
 #' A naive method for penalty level selection is using information criteria.
 #' Huang, Chen, and Weng (2017) have shown the asymptotic properties of Akaike information criterion (AIC) and Bayesian information criterion (BIC) in selecting the penalty level.
-#' In \pkg{lslx}, infromation criteria other an AIC and BIC can be also used.
+#' In \pkg{lslx}, information criteria other an AIC and BIC can be also used.
 #' However, the empirical performances of these included criteria should be further studied.
 #' Details of choosing an optimal penalty level can be found in the section of \emph{Penalty Level Selection}.
 #'
@@ -90,7 +91,7 @@
 #' When fitting the model to data, a reduced model and data will be sent to \code{lslxFitting}.
 #' After the underlying optimizer finishes its job, the fitting results will be also stored in \code{lslxFitting}.
 #' Since the three members are set as private, they can be only assessed by defined member functions.
-#' Other than the three members, quantities that are crucial for SEM can be also extracted, such as model-implied moments, information matrice, and etc..
+#' Other than the three members, quantities that are crucial for SEM can be also extracted, such as model-implied moments, information matrix, and etc..
 #' Details of methods for obtaining private members and SEM-related quantities can be found in the sections of \emph{Get-Related Methods} and \emph{Extract-Related Methods}.
 #'
 #'
@@ -99,6 +100,8 @@
 #' With \pkg{lslx} the relationships among observed variables and latent factors are mainly specified via equation-like syntax.
 #' The creation of syntax in \pkg{lslx} is highly motivated by \pkg{lavaan} (Rosseel, 2012), a successful package for fitting SEM.
 #' However, \pkg{lslx} utilizes slightly more complex, but still intuitive operators to describe relations among variables.
+#'
+#'
 #'
 #'
 #' \bold{Example 1: Multiple Regression Model}
@@ -113,15 +116,15 @@
 #'
 #' Although it is a very simple example, at least four important things behind this example should be addressed:
 #' \enumerate{
-#' \item{For any endogenous veriable (i.e., an variable that is influenced by any other variable), its residual term is not required to be specified.
+#' \item{For any endogenous variable (i.e., an variable that is influenced by any other variable), its residual term is not required to be specified.
 #' In this example, \code{lslx} recognizes \code{y} is an endogenous variable and hence the variance of corresponding residual will be set as freely estimated parameter.
 #' It is also possible to explicitly specify the variance of residual of \code{y} by \code{y <=> y}.
 #' Here, the operator \code{<=>} indicates the covariance of the RHS and LHS variables should be freely estimated.}
-#' \item{If all of the specified equations do not contain the intercept variable \code{1}, then the intercept of each endogeneous and observed variable will be freely estimated.
+#' \item{If all of the specified equations do not contain the intercept variable \code{1}, then the intercept of each endogenous and observed variable will be freely estimated.
 #' Since the intercept variable \code{1} doesn't appear in this example, the intercept for \code{y} will be set as a freely estimated parameter.
 #' We can explicitly set the intercept term by \code{y <= 1}.
 #' However, under the situation that many equations are specified, once the intercept variable \code{1} appears in some equation, intercept terms in other equations should be explicitly specified.
-#' Otherwise, the intercepts of endogeneous and observed variables in other equations will be fixed at zero.
+#' Otherwise, the intercepts of endogenous and observed variables in other equations will be fixed at zero.
 #' }
 #' \item{For any set of exogeneous variables (i.e., variables that are not influenced by any other variable in the specified system),
 #' not only their variances will be freely estimated, but also their pairwise covariances will be set as freely estimated parameters.
@@ -130,7 +133,7 @@
 #' These covariances can be explicitly stated by simply \code{x1 + x2 <=> x1 + x2}.
 #' The syntax parser in \code{lslx} will consider variance/covariance of each combination of LHS and RHS variables.}
 #' \item{The intercepts (or means) of exogeneous and observed variables are always set as freely estimated parameters.
-#' In this example, the interceps of \code{x1} and \code{x2} will be freely estimated.
+#' In this example, the intercepts of \code{x1} and \code{x2} will be freely estimated.
 #' It can be stated explicitly by \code{x1 + x2 <= 1}.
 #' Also, the \code{lslx} parser will know that the intercept variable \code{1} has effect on all of \code{x1} and \code{x2}.}
 #' }
@@ -158,7 +161,9 @@
 #' Any prefix must present before some variable name and divided by asterisk \code{*}.
 #' Note that prefix can appear in the either RHS or LHS of operators and its function can be 'distributed' to the variables in the other side.
 #' For example, \code{free() * y <~ x1 + x2} will be interpreted as that all of the coefficients should be freely estimated.
-#' However, any prefix cannot simultaneously appears on both sides of operators, which may result in an ambiguity specification.
+#' However, any prefix cannot simultaneously appear on both sides of operators, which may result in an ambiguity specification.
+#'
+#'
 #'
 #'
 #' \bold{Example 2: Factor Analysis Model}
@@ -180,7 +185,7 @@
 #' As addressed in the first example, the \code{lslx} parser will automatically set many parameters that are not directly presented in these equations.
 #' \enumerate{
 #' \item {
-#' In this example, all of the observed variables are directed by some latent factor and hence they are endogeneous.
+#' In this example, all of the observed variables are directed by some latent factor and hence they are endogenous.
 #' The variances of their residuals will be set as freely estimated parameters.
 #' Also, their intercepts will be freely estimated since no intercept variable \code{1} presents in the specified equations.
 #' }
@@ -190,7 +195,7 @@
 #' However, because they are latent but not observed, their intercepts will be fixed at zero.
 #' If user hope to estimate the latent factor means, they should add an additional equation \code{f1 + f2 + f3 <= 1}.
 #' After adding this equation, on the one hand, the latent intercepts will be set as free as indicated by that equation.
-#' On the other hand, since intercet variable \code{1} now presents in the specified equations, the intercepts for the endogenous and observed variables will be then fixed at zero.
+#' On the other hand, since intercept variable \code{1} now presents in the specified equations, the intercepts for the endogenous and observed variables will be then fixed at zero.
 #' }
 #' }
 #' So far, the specification for the factor analysis model is not complete since the scales of factors are not yet determined.
@@ -205,8 +210,7 @@
 #'  \code{fix(1) * y7 + y8 + y9 <=: f3}
 #'
 #' The prefix \code{fix(1)} will fix the corresponding loadings to be one.
-#' Note that our syntax is different to that in \pkg{lavaan}, which fix the loading of \code{y1} at one by simply using \code{1 * y1}.
-#' In \pkg{lslx}, \code{1 * y1} means that the starting value of coefficient corresponding to \code{y1} (which can be free or penalized parameter, depending on the specified operator) is set as one.
+#' Simply using \code{1 * y1} will be also interpreted as fixing the loading of \code{y1} at one to mimic \pkg{lavaan}.
 #' The second way for scale setting is fixing the variance of latent factors, which can be achieved by specifying additional equations
 #'
 #'  \code{fix(1) * f1 <=> f1}
@@ -241,6 +245,27 @@
 #'  \code{fix(1) * f3 <=> f3}
 #'
 #' In this specification, loadings in the non-independent cluster will be also estimated but with penalization.
+#' 
+#' After version 0.6.3, \pkg{lslx} supports basic \pkg{lavaan} operators. 
+#' The previous model can be equivalently specified as
+#'
+#'  \code{f1 =~ y1 + y2 + y3}
+#'
+#'  \code{f2 =~ y4 + y5 + y6}
+#'
+#'  \code{f3 =~ y7 + y8 + y9}
+#'
+#'  \code{pen() * f1 =~ y4 + y5 + y6 + y7 + y8 + y9}
+#'
+#'  \code{pen() * f2 =~ y1 + y2 + y3 + y7 + y8 + y9}
+#'
+#'  \code{pen() * f3 =~ y4 + y5 + y6 + y7 + y8 + y9}
+#'
+#'  \code{f1 ~~ 1 * f1}
+#'
+#'  \code{f2 ~~ 1 * f2}
+#'
+#'  \code{f3 ~~ 1 * f3}
 #'
 #'
 #' \bold{Example 3: Path Models with both Observed Variables and Latent Factors}
@@ -282,6 +307,8 @@
 #' the semi-confirmatory approach can set this part as exploratory by setting the corresponding parameters as penalized.
 #'
 #'
+#'
+#'
 #' \bold{Example 4: Multi-Group Factor Analysis Model}
 #'
 #' In the fourth example, we consider a multi-group factor analysis model.
@@ -316,8 +343,8 @@
 #' It seems that testing coefficient invariance across groups is impossible in \pkg{lslx}.
 #' However, the present package parameterizes group coefficients in different way compared to other SEM software (Huang, in press).
 #' Under \pkg{lslx}, each group coefficient is decomposed into a sum of a reference component and an increment component.
-#' If the reference component is assumed to be zero, the increment component represents the group coefficient, which is equivalent to the usual parameterization in other softwares.
-#' On the other hand, if some group is set as reference (argument \code{referene_group} in \code{new} method, please see the section of \emph{Initialize Method}),
+#' If the reference component is assumed to be zero, the increment component represents the group coefficient, which is equivalent to the usual parameterization in other software solutions.
+#' On the other hand, if some group is set as reference (argument \code{reference_group} in \code{new} method, please see the section of \emph{Initialize Method}),
 #' then the reference component now represents the group coefficient of the reference group and other increment components represent the differences from the reference group.
 #' The coefficient invariance across groups can be evaluated by examining the value or sparsity of the corresponding increment component.
 #'
@@ -328,10 +355,10 @@
 #' where \eqn{loss} is the ML loss function, \eqn{regularizer} is a regularizer, possibly lasso (Tibshirani, 1996) or mcp (Zhang, 2010), and \eqn{\lambda} is a regularization parameter.
 #' The optimization algorithm for minimizing the PL criterion is based on an improved \pkg{glmnet} method (Friedman, Hastie, & Tibshirani, 2010) made by Yuan, Ho, and Lin (2012).
 #' The algorithm can be understood as a quasi-Newton method with inner loop and outer loop.
-#' The inner loop of the algorithm derives a quasi-Newton direction by miniming a quadratic approximated objective function via coordinate descent.
-#' To save the computation time, the Hessian matrix for the quadratic term is approximated by the Broyden-Fletcher-Goldfarb-Shanno (BFGS) method or the expected Hessian (Fisher's scoring).
+#' The inner loop of the algorithm derives a quasi-Newton direction by minimizing a quadratic approximated objective function via coordinate descent.
+#' To save the computation time, the Hessian matrix for the quadratic term is approximated by the Broyden-Fletcher-Goldfarb-Shanno (BFGS) method or the expected Hessian (Fisher scoring).
 #' Although the computational cost of BFGS approximation is much smaller than calculating expected hessian,
-#' our experience shows that Fisher's scoring are generally faster because of smalller outer iterations for convergence.
+#' our experience shows that the two methods perform similarly in terms of computation time because more outer iterations are required for BFGS.
 #' The inner loop stops if the change of the derived direction is quite small.
 #' The outer loop of the algorithm updates the value of parameter estimate via the derived quasi-Newton direction and Armijo's rule.
 #' The outer loop stops if the maximal absolute element of subgradient of objective function is smaller than the specified tolerance.
@@ -339,10 +366,10 @@
 #' Note that the PL estimates is a function of penalty level, i.e., PL estimates can vary under different penalty levels.
 #' An optimal penalty level can be chosen by using model selection criterion.
 #'
-#' In \pkg{lslx}, PL estimates under each penalty levels specified by user will be calculated.
-#' The penalty levels will be sorted from large/convex to small/nonconvex based on the suggestion of Mazumder (2011).
+#' In \pkg{lslx}, PL estimates under each penalty level and convexity level specified by user will be calculated.
+#' The convexity levels will be sorted from large to small based on the suggestion of Mazumder (2011).
 #' The previous obtained PL estimate will be used as warm start for further minimization problem.
-#' Since the solution path is continous, the warm start can speed up the convergence of minimization (see Friedman, Hastie, & Tibshirani, 2010).
+#' Since the solution path is continuous, the warm start can speed up the convergence of minimization (see Friedman, Hastie, & Tibshirani, 2010).
 #'
 #'
 #' @section Missing Data:
@@ -352,17 +379,17 @@
 #' If the missing mechanism is missing completely at random (MCAR; Rubin, 1976), the listwise deletion method can yield a consistent estimator.
 #' The two-stage method first calculates the saturated moments by minimizing the likelihoods based on all of the available observations and then use the obtained saturated moment estimates for further SEM analysis.
 #' Under the assumption of missing at random (MAR; Rubin, 1976), it has been shown that the two-stage method can yield a consistent estimate.
-#' In addition, the standard errors of coefficients can be also consistently estimated if a correct asumptotic covariance of saturated moments is used.
+#' In addition, the standard errors of coefficients can be also consistently estimated if a correct asymptotic covariance of saturated moments is used.
 #' Because the two-stage approach is generally valid and efficient compared to the listwise deletion method,
 #' \pkg{lslx} set the two-stage method as default for handling the missing data problem.
-#' The current version also supports the use of auxiliary varialbes (see Savalei & Bentler, 2008).
+#' The current version also supports the use of auxiliary variables (see Savalei & Bentler, 2008).
 #' If the two-stage method is implemented, the standard error formula will be corrected for the presence of missing data (see Yuan & Lu, 2008 for technical details).
 #'
 #' So far, \pkg{lslx} doesn't include the full-information maximum likelihood (FIML) method for missing values.
 #' One reason is that PL can be computationally intensive if many penalty levels are considered.
 #' The additional E-step in each iteration of FIML makes the problem worse.
-#' Another reason is that the two step method has been shown to outperform FIML in simulation settings (Savalei & Falk, 2014).
-#' Therefore, we tend to believe that the implementation of FIML in PL may not bring further advantages over the two step method.
+#' Another reason is that the two-step method has been shown to outperform FIML in simulation settings (Savalei & Falk, 2014).
+#' Therefore, we tend to believe that the implementation of FIML in PL may not bring further advantages over the two-step method.
 #'
 #'
 #'@section Penalty Level Selection:
@@ -397,22 +424,22 @@
 #' \eqn{loss(\theta)}: the loss value under estimate \eqn{\theta};
 #' }
 #' \item{
-#' \eqn{df(\theta)}: the degree of freedom defined by \eqn{G * P * (P + 3) / 2 - \#(\theta)} with \eqn{\#(\theta)} being the number of non-zero elements in \eqn{\theta}.
+#' \eqn{df(\theta)}: the degree of freedom defined by \eqn{G * P * (P + 3) / 2 - e(\theta)} with \eqn{e(\theta)} being the number of non-zero elements in \eqn{\theta}.
 #' }
 #' }
-#' Note the the formula for calculating the information criteria in \pkg{lslx} are different to other softwares.
-#' The loss function value is used to replaced the likelihood function value and hence the penalty term is also divided by sample size \eqn{N}.
+#' Note the formula for calculating the information criteria in \pkg{lslx} are different to other software solutions.
+#' The loss function value is used to replace the likelihood function value and hence the penalty term is also divided by sample size \eqn{N}.
 #' For each information criterion, a robust version is calculated if raw data is available.
-#' Their coreesponding names are \code{raic}, \code{raic3}, \code{rcaic}, \code{rbic}, \code{rabic}, and \code{rhbic} with "r" standing for "robust".
+#' Their corresponding names are \code{raic}, \code{raic3}, \code{rcaic}, \code{rbic}, \code{rabic}, and \code{rhbic} with "r" standing for "robust".
 #' These robust criteria use the Satorra-Bentler scaling factor for correcting degree of freedom.
 #' For the case of normal data and correctly specified model, the two versions will be the same asymptotically.
 #'
 #'
 #' Huang, Chen, and Weng (2017) have study the asymptotic behaviors of \code{aic} and \code{bic} under penalized estimation.
-#' They show that under suitable conditions, \code{aic} can select a model with minimum espected loss and \code{bic} can choose the most parsimous one from models that attain the minimum espected loss.
+#' They show that under suitable conditions, \code{aic} can select a model with minimum expected loss and \code{bic} can choose the most parsimonious one from models that attain the minimum expected loss.
 #' By the order of penalty term, we may expect: (1) the large sample behaviors of \code{aic3} and \code{tic} will be similar to \code{aic};
 #' and (2) the asymptotic behaviors of \code{caic}, \code{abic}, and \code{hbic} will be similar to \code{bic}.
-#' However, their small-sample performances require futher studies.
+#' However, their small-sample performances require further studies.
 #'
 #'
 #'@section Model Fit Evaluation:
@@ -421,9 +448,9 @@
 #' \describe{
 #' \item{\code{rmsea}}{Root Mean Square Error of Approximation (Steiger, 1998; Steiger & Lind, 1980)
 #' \deqn{ RMSEA(\theta)=\sqrt(G * max(loss(\theta) / df(\theta) - 1 / N, 0)) }}
-#' \item{\code{cfi}}{Comparative Fit Indice (Bentler, 1990)
+#' \item{\code{cfi}}{Comparative Fit Index (Bentler, 1990)
 #' \deqn{ CFI(\theta)=(max(loss_0 - df_0 / N, 0) - max(loss(\theta) - df(\theta) / N, 0)) / max(loss_0 - df_0 / N, 0)}}
-#' \item{\code{nnfi}}{Non-Normed Fit Indice (Tucker & Lewis, 1973)
+#' \item{\code{nnfi}}{Non-Normed Fit Index (Tucker & Lewis, 1973)
 #' \deqn{ NNFI(\theta)=(loss_0 / df_0 - loss(\theta) / df(\theta)) / (loss_0 / df_0 - 1 /N) }}
 #' \item{\code{srmr}}{Standardized Root Mean of Residual (Bentler, 1995)
 #' \deqn{ SRMR(\theta)=\sqrt(\sum_g w_g \sum_i \sum_{j \leq i} ((\sigma_{gij} - s_{gij})^2 / (\sigma_{gii} * \sigma_{gjj})) / (G * P * (P + 1) / 2)}
@@ -494,7 +521,7 @@
 #' @section Initialize Method:
 #'
 #' \preformatted{$new(model, data, sample_cov, sample_mean, sample_size, group_variable,
-#'      reference_group, weight_variable, auxiliary_variable, verbose = TRUE)}
+#'   reference_group, weight_variable, auxiliary_variable, verbose = TRUE)}
 #' \describe{
 #' \item{\bold{Arguments}}{
 #'
@@ -514,7 +541,7 @@
 #' }
 #' \bold{Details}
 #'
-#' \code{$new()} initialzes a new object of \code{lslx} R6 class for fitting semi-confirmatory structural equation modeling (SEM).
+#' \code{$new()} initializes a new object of \code{lslx} R6 class for fitting semi-confirmatory structural equation modeling (SEM).
 #' In most cases, a new \code{lslx} object is initialized by supplying \code{model} and \code{data}.
 #' For details of syntax for model specification, see the section of \emph{Model Syntax}.
 #' If raw data is not available, \code{lslx} also supports initialization via sample moments.
@@ -596,7 +623,7 @@
 #' Note that in relation we only use operators \code{"<-"} and \code{"<->"}.
 #' \code{"->"} is illegal and no distinction between \code{"="} and \code{"~"} are made.
 #' In multi-group analysis cases, a coefficient name requires explicitly specifying group name.
-#' For example, \code{"y1<-f1|G1"} is the parameter name for the path coefficient from \code{"f1"} to \code{"y1"} in group \code{"G1"}.}
+#' For example, \code{"y1<-f1/G1"} is the parameter name for the path coefficient from \code{"f1"} to \code{"y1"} in group \code{"G1"}.}
 #' \item{
 #' Block is defined by the types of left variable and right variable, and the operator.
 #' In \pkg{lslx}, \code{"y"} is used to indicate observed response, \code{"f"} is used for latent factor, and \code{"1"} is for intercept.
@@ -608,24 +635,27 @@
 #'
 #' @section Fit-Related Methods:
 #'
-#' \preformatted{$fit(penalty_method = "none", lambda_grid = "default", delta_grid = "default",
-#'      algorithm = "default", missing_method = "default", start_method = "default",
-#'      iter_out_max = 100L, iter_in_max = 50L, iter_other_max = 500L,
-#'      iter_armijo_max = 100L, tol_out = 1e-3, tol_in = 1e-3, tol_other = 1e-7,
-#'      step_size = 0.5, armijo = 1e-5, ridge_cov = 1e-4, ridge_hessian = 1e-4,
-#'      positive_diag = TRUE, verbose = TRUE)
-#' $fit_lasso(lambda_grid = 0, ...)
-#' $fit_mcp(lambda_grid = 0, delta_grid = Inf, ...)}
+#' \preformatted{$fit(penalty_method = "mcp", lambda_grid = "default", delta_grid = "default",
+#'   algorithm = "default", missing_method = "default", start_method = "default", 
+#'   lambda_direction = "default", lambda_length = 50L, delta_length = 3L,
+#'   threshold_value = 0.3, iter_out_max = 100L, iter_in_max = 50L, 
+#'   iter_other_max = 500L, iter_armijo_max = 100L, tol_out = 1e-3, tol_in = 1e-3, 
+#'   tol_other = 1e-7, step_size = 0.5, armijo = 1e-5, ridge_cov = 0, 
+#'   ridge_hessian = 1e-4, warm_start = TRUE, positive_variance = TRUE, 
+#'   minimum_variance = 1e-4, enforce_cd = FALSE, verbose = TRUE)
+#' $fit_none(...)
+#' $fit_lasso(lambda_grid = "default", ...)
+#' $fit_mcp(lambda_grid = "default", delta_grid = "default", ...)}
 #'\describe{
 #'\item{\bold{Arguments}}{
 #'
 #'}
 #'\item{\code{penalty_method}}{A \code{character} to specify the penalty method.
 #'   The current version supports \code{"none"}, \code{"lasso"}, and \code{"mcp"}.}
-#'\item{\code{lambda_grid}}{A non-negative \code{numeric} for specifying penalty levels for both \code{"lasso"} and \code{"mcp"}.
-#'   If it is set as \code{"default"}, its value will be zero.}
-#'\item{\code{delta_grid}}{A \code{numeric} with values larger than one for specifying the non-convexity \code{"mcp"}.
-#'   If it is set as \code{"default"}, its value will be infinity.}
+#'\item{\code{lambda_grid}}{A non-negative \code{numeric} to specify penalty levels for both \code{"lasso"} and \code{"mcp"}.
+#'   If it is set as \code{"default"}, its value will be generated automatically based on the variable scales.}
+#'\item{\code{delta_grid}}{A non-negative \code{numeric} to specify the convexity level for \code{"mcp"}.
+#'   If it is set as \code{"default"}, its value will be generated automatically based on the variable scales.}
 #'\item{\code{algorithm}}{A \code{character} to determine the method of optimization.
 #'   The current version supports \code{"bfgs"} and \code{"fisher"}.
 #'   If the argument is set as \code{"default"}, then (1) \code{"bfgs"} will be implemented if no penalty is considered;
@@ -638,18 +668,29 @@
 #'\item{\code{start_method}}{A \code{character} to determine the method for calculating unspecified starting values.
 #'   The current version supports \code{"mh"} (McDonald & Hartmann, 1992) and \code{"heuristic"}.
 #'   If the argument is set as \code{"default"}, the \code{"mh"} will be implemented.}
-#'\item{\code{positive_diag}}{A \code{logical} to specify whether the variance estimate should be constrained to be larger than \code{ridge_cov}.}
+#'\item{\code{lambda_direction}}{A \code{character} to determine the "direction" of \code{lambda_grid}.
+#'   \code{"decrease"} sorts \code{lambda_grid} from large to small. 
+#'   On the contrary, \code{"increase"} sorts \code{lambda_grid} from small to large. 
+#'   If the argument is set as \code{"default"}, \code{"increase"} will be used when the smallest element of \code{lambda_grid} is larger tha zero;
+#'   otherwise, \code{"decrease"} is assumed.}
+#'\item{\code{lambda_length}}{A \code{numeric} to specify the length of automatically generated \code{lambda_grid} under \code{lambda_grid = "default"}.}
+#'\item{\code{delta_length}}{A \code{numeric} to specify the length of automatically generated \code{delta_grid} under \code{delta_grid = "default"}.}
+#'\item{\code{threshold_value}}{A \code{numeric} to specify the "largest threshold value" for \code{lambda_grid} initialization.}
 #'\item{\code{iter_out_max}}{A positive \code{integer} to specify the maximal iterations for outer loop of the modified \code{glmnet} algorithm.}
 #'\item{\code{iter_in_max}}{A positive \code{integer} to specify the maximal iterations for inner loop of the modified \code{glmnet} algorith.}
 #'\item{\code{iter_other_max}}{A positive \code{integer} to specify the maximal iterations for other loop.}
-#'\item{\code{iter_armijo_max}}{A positive \code{integer} to specify the maximal iterations for searching step-size via armijo rule.}
+#'\item{\code{iter_armijo_max}}{A positive \code{integer} to specify the maximal iterations for searching step-size via Armijo rule.}
 #'\item{\code{tol_out}}{A small positive \code{numeric} to specify the tolerance (convergence criterion) for outer loop of the modified \code{glmnet} algorithm.}
 #'\item{\code{tol_in}}{A small positive \code{numeric} to specify the tolerance (convergence criterion) for inner loop of the modified \code{glmnet} algorithm.}
 #'\item{\code{tol_other}}{A small positive \code{numeric} to specify the tolerance (convergence criterion) for other loop.}
 #'\item{\code{step_size}}{A positive \code{numeric} smaller than one to specify the step-size.}
-#'\item{\code{armijo}}{A small positive \code{numeric} for the constant in armijo rule.}
-#'\item{\code{ridge_cov}}{A small positive \code{numeric} for the ridge of sample covariance matrix and the minimal value of variance estimate if \code{positive_diag = TRUE}.}
+#'\item{\code{armijo}}{A small positive \code{numeric} for the constant in Armijo rule.}
+#'\item{\code{ridge_cov}}{A small positive \code{numeric} for the ridge of sample covariance matrix.}
 #'\item{\code{ridge_hessian}}{A small positive \code{numeric} for the ridge of approximated hessian in optimization.}
+#'\item{\code{warm_start}}{A \code{logical} to specify whether the warm start approach should be used.}
+#'\item{\code{positive_variance}}{A \code{logical} to specify whether the variance estimate should be constrained to be larger than \code{minimum_variance}.}
+#'\item{\code{minimum_variance}}{A \code{numeric} to specify the minimum value of variance if \code{positive_variance = TRUE}.}
+#'\item{\code{enforce_cd}}{A \code{logic} to specify whether coordinate descent should be used when no penalty function is used.}
 #'\item{\code{verbose}}{A \code{logical} to specify whether messages made by \code{lslx} should be printed.}
 #'\item{\code{...}}{Other passing arguments for calling \code{$fit()}.}
 #'}
@@ -662,6 +703,9 @@
 #' \code{$fit()} fits the specified model to data by minimizing a penalized ML loss function.
 #' It is the most comprehensive fit method and hence many arguments can be specified.
 #'
+#' \code{$fit_none()} fits the specified model to data by minimizing a ML loss function without penalty.
+#' It is a user convinient wrapper of \code{$fit()} with \code{penalty_method = "none"}.
+#'
 #' \code{$fit_lasso()} fits the specified model to data by minimizing a ML loss function with lasso penalty (Tibshirani, 1996).
 #' It is a user convinient wrapper of \code{$fit()} with \code{penalty_method = "lasso"}.
 #'
@@ -670,8 +714,9 @@
 #'
 #'
 #' @section Summarize Method:
-#' \preformatted{$summarize(selector, standard_error = "default", alpha_level = .05,
-#'            digit = 3, interval = TRUE, simplify = FALSE, exclude_improper = TRUE)}
+#' \preformatted{$summarize(selector, lambda, delta, standard_error = "default", debias = "default",
+#'   post_inference = "default", alpha_level = .05, include_faulty = FALSE, 
+#'   style = "default", mode = "default", digit = 3, interval = TRUE, output)}
 #'\describe{
 #'\item{\bold{Arguments}}{
 #'
@@ -679,31 +724,48 @@
 #'\item{\code{selector}}{A \code{character} to specify a selector for determining an optimal penalty level.
 #'   Its value can be any one in \code{"aic"}, \code{"aic3"}, \code{"caic"}, \code{"bic"}, \code{"abic"}, \code{"hbic"},
 #'   or their robust counterparts \code{"raic"}, \code{"raic3"}, \code{"rcaic"}, \code{"rbic"}, \code{"rabic"}, \code{"rhbic"} if raw data is available.}
+#'\item{\code{lambda}}{A \code{numeric} to specific a chosen optimal penalty level. 
+#'   If the specified \code{lambda} is not in \code{lambda_grid}, a nearest legitimate value will be used. }
+#'\item{\code{delta}}{A \code{numeric} to specific a chosen optimal convexity level.
+#'   If the specified \code{delta} is not in \code{delta_grid}, a nearest legitimate value will be used.}
 #'\item{\code{standard_error}}{A \code{character} to specify the standard error to be used for hypothesis testing.
-#'   The argument can be either \code{"sandwich"}, \code{"expected_fisher"}, and \code{"observed_fisher"}.
+#'   The argument can be either \code{"sandwich"}, \code{"expected_information"}, and \code{"observed_information"}.
 #'   If it is specified as \code{"default"}, it will be set as
-#'   (1) \code{"sandwich"} when raw data is available; (2) \code{"observed_fisher"} when only moment data is available.}
+#'   (1) \code{"sandwich"} when raw data is available; (2) \code{"observed_information"} when only moment data is available.}
+#'\item{\code{debias}}{A \code{character} to specify a debias method for obtaining a debiased estimator.
+#'   Its value can be either \code{"none"} or \code{"one_step"}. 
+#'   If it is specified as \code{"default"}, \code{"none"} will be used unless \code{post = "polyhedral"} is used.}
+#'\item{\code{post_inference}}{A \code{character} to specify the method for post selection inference.
+#'   The current version supports \code{"none"}, \code{"polyhedral"}, and \code{"scheffe"}.
+#'   If it is specified as \code{"default"}, \code{"none"} will be used.}
 #'\item{\code{alpha_level}}{A \code{numeric} to specify the alpha level for constructing 1 - alpha confidence intervals.}
-#'\item{\code{digit}}{An \code{interger} to specify the number of digits to be displayed.}
-#'\item{\code{interval}}{A \code{logical} to specify whether the confidence interval should be printed.}
-#'\item{\code{simplify}}{A \code{logical} to specify whether the result should be simplified.}
-#'\item{\code{exclude_improper}}{A \code{logical} to specify whether non-convergence or non-convexity results should be removed for penalty level selection.
-#'   Non-convergence result determined by examining the maximal elements of absolute objective gradient and the number of iteration.
+#'\item{\code{include_faulty}}{A \code{logical} to specify whether non-convergence or non-convexity results should be removed for penalty level selection.
+#'   Non-convergence result determined by examining the maximal elements of absolute objective gradient and the number of iterations.
 #'   non-convexity result is determined by checking the minimum of univariate approximate hessian.}
+#'\item{\code{style}}{A \code{character} to specify whether the style of summary.
+#'   Its value must be either \code{"default"}, \code{"manual"}, \code{"minimal"}, or \code{"maximal"}.}
+#'\item{\code{mode}}{A \code{character} to specify the mode of summary. 
+#'   Its value must be \code{"print"} or \code{"return"}. 
+#'   \code{"print"} will print the summary result and \code{"return"} will return a \code{list} of the summary result.
+#'   If it is specified as \code{"default"}, it will be set as \code{"print"}.}
+#'\item{\code{digit}}{An \code{integer} to specify the number of digits to be displayed.}
+#'\item{\code{interval}}{A \code{logical} to specify whether the confidence interval should be printed.}
 #'}
 #' \bold{Details}
 #'
-#' \code{$summarize()} prints a summary for the fitting result under the given selector.
-#' It requires users to specify which selector should be used.
-#' By default, the summary includes model information, numerical conditions, information criteria, fit inddices, coefficient estimates, and related statistical inference.
+#' \code{$summarize()} prints a summary for the fitting result under a selected peanlty/convexity level.
+#' It requires users to specify which selector should be used or a combination of \code{gamma} and \code{lambda}..
+#' By default, the summary includes model information, numerical conditions, fit indices, coefficient estimates, and related statistical inference.
+#' It can be modified by the \code{style} argument. 
 #' For details of evaluation and inference methods, see the sections of \emph{Model Fit Evaluation} and \emph{Coefficient Evaluation}.
 #'
 #' @section Test-Related Methods:
 #'
-#' \preformatted{$test_lr(selector, exclude_improper = TRUE)
-#' $test_rmsea(selector, alpha_level = .05, exclude_improper = TRUE)
-#' $test_coefficient(selector, standard_error = "default",
-#'                   alpha_level = .05, exclude_improper = TRUE)}
+#' \preformatted{$test_lr(selector, lambda, delta, include_faulty = FALSE)
+#' $test_rmsea(selector, lambda, delta, alpha_level = .05, include_faulty = FALSE)
+#' $test_coefficient(selector, lambda, delta, standard_error = "default", 
+#'   debias = "default", post_inference = "default", alpha_level = .05, 
+#'   include_faulty = FALSE)}
 #'\describe{
 #'\item{\bold{Arguments}}{
 #'
@@ -711,18 +773,28 @@
 #'\item{\code{selector}}{A \code{character} to specify a selector for determining an optimal penalty level.
 #'   Its value can be any one in \code{"aic"}, \code{"aic3"}, \code{"caic"}, \code{"bic"}, \code{"abic"}, \code{"hbic"},
 #'   or their robust counterparts \code{"raic"}, \code{"raic3"}, \code{"rcaic"}, \code{"rbic"}, \code{"rabic"}, \code{"rhbic"} if raw data is available.}
+#'\item{\code{lambda}}{A \code{numeric} to specific a chosen optimal penalty level. 
+#'   If the specified \code{lambda} is not in \code{lambda_grid}, a nearest legitimate value will be used. }
+#'\item{\code{delta}}{A \code{numeric} to specific a chosen optimal convexity level.
+#'   If the specified \code{delta} is not in \code{delta_grid}, a nearest legitimate value will be used.}
 #'\item{\code{standard_error}}{A \code{character} to specify the standard error to be used for hypothesis testing.
-#'   The argument can be either \code{"sandwich"}, \code{"expected_fisher"}, and \code{"observed_fisher"}.
+#'   The argument can be either \code{"sandwich"}, \code{"expected_information"}, and \code{"observed_information"}.
 #'   If it is specified as \code{"default"}, it will be set as
-#'   (1) \code{"sandwich"} when raw data is available; (2) \code{"observed_fisher"} when only moment data is available.}
+#'   (1) \code{"sandwich"} when raw data is available; (2) \code{"observed_information"} when only moment data is available.}
+#'\item{\code{debias}}{A \code{character} to specify a debias method for obtaining a debiased estimator.
+#'   Its value can be either \code{"none"} or \code{"one_step"}. 
+#'   If it is specified as \code{"default"}, \code{"none"} will be used unless \code{post = "polyhedral"} is used.}
+#'\item{\code{post_inference}}{A \code{character} to specify the method for post selection inference.
+#'   The current version supports \code{"none"}, \code{"polyhedral"}, and \code{"scheffe"}.
+#'   If it is specified as \code{"default"}, \code{"none"} will be used.}
 #'\item{\code{alpha_level}}{A \code{numeric} to specify the alpha level for constructing 1 - alpha confidence intervals.}
-#'\item{\code{exclude_improper}}{A \code{logical} to specify whether non-convergence or non-convexity results should be removed for penalty level selection.
+#'\item{\code{include_faulty}}{A \code{logical} to specify whether non-convergence or non-convexity results should be removed for penalty level selection.
 #'   Non-convergence result determined by examining the maximal elements of absolute objective gradient and the number of iteration.
 #'   non-convexity result is determined by checking the minimum of univariate approximate hessian.}
 #'}
 #' \bold{Details}
 #'
-#' Test-related mthods are used to obtain the result of specific statistical test.
+#' Test-related methods are used to obtain the result of specific statistical test.
 #' So far, only tests for likelihood ratio (LR), root mean square error of approximation (RMSEA), and coefficients are available.
 #'
 #' \code{$test_lr()} returns a \code{data.frame} of result for likelihood ratio test.
@@ -737,10 +809,11 @@
 #' For details of standard error formula for coefficients, see the section of \emph{Coefficient Evaluation}.
 #'
 #' @section Plot-Related Methods:
-#' \preformatted{$plot_numerical_condition(condition)
-#' $plot_information_criterion(criterion)
-#' $plot_fit_indice(indice)
-#' $plot_coefficient(block, left, right, both)}
+#' \preformatted{$plot_numerical_condition(condition, lambda_scale = "default", mode = "default")
+#' $plot_information_criterion(criterion, lambda_scale = "default", mode = "default")
+#' $plot_fit_index(index, lambda_scale = "default", mode = "default")
+#' $plot_coefficient(block, left, right, both, lambda_scale = "default", 
+#'   mode = "default")}
 #' \describe{
 #' \item{\bold{Arguments}}{
 #'
@@ -751,13 +824,18 @@
 #'  \item{\code{criterion}}{A \code{character} to specify which information criteria should be plotted.
 #'  Its value must be \code{"aic"}, \code{"aic3"}, \code{"caic"}, \code{"bic"}, \code{"abic"}, \code{"hbic"},
 #'  \code{"raic"}, \code{"raic3"}, \code{"rcaic"}, \code{"rbic"}, \code{"rabic"}, \code{"rhbic"}, or their combination.}
-#'  \item{\code{indice}}{A \code{character} to specify which fit indices should be plotted.
+#'  \item{\code{index}}{A \code{character} to specify which fit indices should be plotted.
 #'  Its value must be \code{"rmsea"}, \code{"cfi"}, \code{"nnfi"}, \code{"srmr"}, or their combination. }
 #'  \item{\code{block}}{A \code{character} with length one to indicate a block such that the corresponding target coefficient will be reset.
 #'  Its value must be one of \code{"f<-1"}, \code{"y<-1"}, \code{"f<-f"}, \code{"f<-y"}, \code{"y<-f"}, \code{"y<-y"}, \code{"f<->f"}, \code{"f<->y"}, \code{"y<->f"}, or \code{"y<->y"}.}
 #'  \item{\code{left}}{A \code{character} to specify the variables in the left-hand side of operator in \code{block}.}
 #'  \item{\code{right}}{A \code{character} to specify the variables in the right-hand side of operator in \code{block}.}
 #'  \item{\code{both}}{A \code{character} to specify the variables in both sides of operator in \code{block}.}
+#'  \item{\code{lambda_scale}}{A \code{character} to specify the scale of lambda (x-axis) for \code{coord_trans()} in \pkg{ggplot2}.}
+#'  \item{\code{mode}}{A \code{character} to specify the mode of plot. 
+#'   Its value must be \code{"plot"} or \code{"return"}. 
+#'   \code{"plot"} will plot the result and \code{"return"} will return a \code{data.frame} for plot.
+#'   If it is specified as \code{"default"}, it will be set as \code{"plot"}.}
 #' }
 #' \bold{Details}
 #'
@@ -770,7 +848,7 @@
 #' \code{$plot_information_criterion()} shows how the values of information criteria vary with penalty levels.
 #' By default, \code{"aic"}, \code{"aic3"}, \code{"caic"}, \code{"bic"}, \code{"abic"}, and \code{"hbic"} are plotted.
 #'
-#' \code{$plot_fit_indice()} shows how the values of fit indices vary with penalty levels.
+#' \code{$plot_fit_index()} shows how the values of fit indices vary with penalty levels.
 #' By default, \code{"rmsea"}, \code{"cfi"}, \code{"nnfi"}, and \code{"srmr"} are plotted.
 #'
 #' \code{$plot_coefficient()} visualizes the solution paths of coefficients belonging to the intersection of \code{block}, \code{left}, \code{right}, and \code{both} arguments.
@@ -784,7 +862,7 @@
 #' }
 #' \bold{Details}
 #'
-#' Get-related methods are defined to obtain a deep copy of memebers inside \code{lslx}.
+#' Get-related methods are defined to obtain a deep copy of members inside \code{lslx}.
 #' Note that all of the data members of \code{lslx} are set as private to protect the inner data structure.
 #' They cannot be assessed directly via \code{$}.
 #'
@@ -801,30 +879,44 @@
 #' $extract_saturated_mean()
 #' $extract_saturated_moment_acov()
 #'
-#' $extract_penalty_level(selector, exclude_improper = TRUE)
-#' $extract_numerical_condition(selector, exclude_improper = TRUE)
-#' $extract_information_criterion(selector, exclude_improper = TRUE)
-#' $extract_fit_indice(selector, exclude_improper = TRUE)
-#' $extract_coefficient(selector, exclude_improper = TRUE)
+#' $extract_penalty_level(selector, lambda, delta, include_faulty = FALSE)
+#' 
+#' $extract_numerical_condition(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_information_criterion(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_fit_index(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_cv_error(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_coefficient(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)
 #'
-#' $extract_implied_cov(selector, exclude_improper = TRUE)
-#' $extract_implied_mean(selector, exclude_improper = TRUE)
-#' $extract_residual_cov(selector, exclude_improper = TRUE)
-#' $extract_residual_mean(selector, exclude_improper = TRUE)
+#' $extract_implied_cov(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_implied_mean(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_residual_cov(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_residual_mean(selector, lambda, delta, include_faulty = FALSE)
 #'
-#' $extract_coefficient_matrice(selector, block, exclude_improper = TRUE)
-#' $extract_moment_jacobian(selector, exclude_improper = TRUE)
+#' $extract_coefficient_matrix(selector, lambda, delta, block, 
+#'   include_faulty = FALSE)
+#' 
+#' $extract_moment_jacobian(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)
 #'
-#' $extract_expected_fisher(selector, exclude_improper = TRUE)
-#' $extract_observed_fisher(selector, exclude_improper = TRUE)
-#' $extract_bfgs_hessian(selector, exclude_improper = TRUE)
-#' $extract_score_acov(selector, exclude_improper = TRUE)
-#' $extract_coefficient_acov(selector, standard_error = "default",
-#'                           exclude_improper = TRUE)
+#' $extract_expected_information(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)
+#' $extract_observed_information(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)
+#' 
+#' $extract_bfgs_hessian(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)
+#' $extract_score_acov(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)
+#' $extract_coefficient_acov(selector, lambda, delta, standard_error = "default",
+#'   type = "default", include_faulty = FALSE)
 #'
-#' $extract_loss_gradient(selector, exclude_improper = TRUE)
-#' $extract_regularizer_gradient(selector, exclude_improper = TRUE)
-#' $extract_objective_gradient(selector, exclude_improper = TRUE)}
+#' $extract_loss_gradient(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)
+#' $extract_regularizer_gradient(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)
+#' $extract_objective_gradient(selector, lambda, delta, type = "default", 
+#'   include_faulty = FALSE)}
 #' \describe{
 #' \item{\bold{Arguments}}{
 #'
@@ -832,26 +924,34 @@
 #'\item{\code{selector}}{A \code{character} to specify a selector for determining an optimal penalty level.
 #'   Its value can be any one in \code{"aic"}, \code{"aic3"}, \code{"caic"}, \code{"bic"}, \code{"abic"}, \code{"hbic"},
 #'   or their robust counterparts \code{"raic"}, \code{"raic3"}, \code{"rcaic"}, \code{"rbic"}, \code{"rabic"}, \code{"rhbic"} if raw data is available.}
+#'\item{\code{lambda}}{A \code{numeric} to specific a chosen optimal penalty level. 
+#'   If the specified \code{lambda} is not in \code{lambda_grid}, a nearest legitimate value will be used. }
+#'\item{\code{delta}}{A \code{numeric} to specific a chosen optimal convexity level.
+#'   If the specified \code{delta} is not in \code{delta_grid}, a nearest legitimate value will be used.}
 #'\item{\code{standard_error}}{A \code{character} to specify the standard error to be used for hypothesis testing.
-#'   The argument can be either \code{"sandwich"}, \code{"expected_fisher"}, and \code{"observed_fisher"}.
+#'   The argument can be either \code{"sandwich"}, \code{"expected_information"}, and \code{"observed_information"}.
 #'   If it is specified as \code{"default"}, it will be set as
-#'   (1) \code{"sandwich"} when raw data is available; (2) \code{"observed_fisher"} when only moment data is available.}
+#'   (1) \code{"sandwich"} when raw data is available; (2) \code{"observed_information"} when only moment data is available.}
 #' \item{\code{block}}{A \code{character} with length one to indicate a block such that the corresponding target coefficient will be reset.
 #'  Its value must be \code{"f<-1"}, \code{"y<-1"}, \code{"f<-f"}, \code{"f<-y"}, \code{"y<-f"}, \code{"y<-y"}, \code{"f<->f"}, \code{"f<->y"}, \code{"y<->f"}, or \code{"y<->y"}.}
-#'\item{\code{exclude_improper}}{A \code{logical} to specify whether non-convergence or non-convexity results should be removed for penalty level selection.
-#'   Non-convergence result determined by examining the maximal elements of absolute objective gradient and the number of iteration.
+#'  \item{\code{type}}{A \code{character} to specify the type of parameters that will be used to compute the extracted quantity. 
+#'  The argument can be either \code{"all"}, \code{"fixed"}, \code{"free"}, \code{"pen"}, \code{"effective"} (include \code{"free"} + \code{"selected"}), and \code{"selected"} (non-zero element of \code{"pen"}).
+#'  If it is specified as \code{"default"}, it will be set as \code{all}.}
+#'\item{\code{include_faulty}}{A \code{logical} to specify whether non-convergence or non-convexity results should be removed for penalty level selection.
+#'   Non-convergence result determined by examining the maximal elements of absolute objective gradient and the number of iterations.
 #'   non-convexity result is determined by checking the minimum of univariate approximate hessian.}
 #'}
 #' \bold{Details}
 #'
 #' Many extract-related methods are defined to obtain quantities that can be used for further SEM applications or model diagnosis.
 #' Some of these quantities only depend on data (e.g., saturated sample covariance matrix), but some of them relies on a penalty level (e.g., gradient of objective function).
-#' An optimal penalty level can be determined by specifying a \code{selector}.
+#' An optimal penalty level can be determined by specifying a \code{selector} or a combination of \code{gamma} and \code{lambda}.
 #' When implementing fit-related methods, \code{lslx} only records necessary results for saving memory.
 #' Therefore, the extract-related methods not only extract objects but may possibly re-compute some of them.
 #' If the extracted quantity is a function of model coefficients, note that fixed coefficient is still considered as a valid variable.
 #' For example, the sub-gradient of objective function is calculated by considering both estimated coefficients and fixed coefficients.
 #' Hence, it is not appropriate to use all the elements of the sub-gradient to evaluate the optimality of solution because the values of fixed coefficients are not optimized.
+#' Fortunately, the \code{type} argument can be used to choose desired parameters by their types.
 #'
 #' \code{$extract_specification()} returns a \code{data.frame} of model specification.
 #'
@@ -860,7 +960,7 @@
 #' \code{$extract_saturated_mean()} returns a \code{list} of saturated sample mean vector(s).
 #'
 #' \code{$extract_saturated_moment_acov()} returns a \code{list} of asymptotic covariance matrice(s) of saturated moments.
-#' Note that if raw data is not available, asymptotic covariance matrice is calculated by assuming normality for data.
+#' Note that if raw data is not available, asymptotic covariance matrix is calculated by assuming normality for data.
 #'
 #' \code{$extract_penalty_level()} returns a \code{character} of the index name of the optimal penalty level.
 #'
@@ -880,16 +980,16 @@
 #'
 #' \code{$extract_residual_mean()} returns a \code{list} of residual vector(s) of mean.
 #'
-#' \code{$extract_coefficient_matrice()} returns a \code{list} of coefficient matrice(s) specified by \code{block}.
+#' \code{$extract_coefficient_matrix()} returns a \code{list} of coefficient matrice(s) specified by \code{block}.
 #'
 #' \code{$extract_moment_jacobian()} returns a \code{matrix} of Jacobian of moment structure.
 #'
-#' \code{$extract_expected_fisher()} returns a \code{matrix} of the expected Fisher information matrix.
+#' \code{$extract_expected_information()} returns a \code{matrix} of the expected Fisher information matrix.
 #'
-#' \code{$extract_observed_fisher()} returns a \code{matrix} of the observed Fisher information matrix.
+#' \code{$extract_observed_information()} returns a \code{matrix} of the observed Fisher information matrix.
 #' Note that the observed information matrix is calculated via numerical differentiation for the gradient of loss.
 #'
-#' \code{$extract_bfgs_fisher()} returns a \code{matrix} of the BFGS Hessian matrix.
+#' \code{$extract_bfgs_hessian()} returns a \code{matrix} of the BFGS Hessian matrix.
 #'
 #' \code{$extract_score_acov()} returns a \code{matrix} of the asymptotic covariance of scores.
 #'
@@ -975,144 +1075,148 @@
 #'
 #'
 #' @examples
-#' ## Regression Analysis with Lasso Penalty ##
+#' ## EXAMPLE: Regression Analysis with Lasso Penalty ##
 #' # run `vignette("regression-analysis")` to see the vignette
 #' # generate data for regression analysis
 #' set.seed(9487)
 #' x <- matrix(rnorm(2000), 200, 10)
 #' colnames(x) <- paste0("x", 1:10)
 #' y <- matrix(rnorm(200), 200, 1)
-#' data <- data.frame(y, x)
+#' data_reg <- data.frame(y, x)
 #'
-#' # specify a model for model specification
-#' model <-
-#' '
-#' y <= x1 + x2 + x3 + x4
-#' y <~ x5 + x6 + x7 + x8 + x9 + x10
-#' '
+#' # specify regression model with penalized coefficients
+#' model_reg <- "y <= x1 + x2 + x3 + x4
+#'               y <~ x5 + x6 + x7 + x8 + x9 + x10"
 #'
-#' # initialize an lslx object via specified model and raw data
-#' r6_lslx <- lslx$new(model = model, data = data)
+#' # initialize lslx object via specified model and raw data
+#' lslx_reg <- lslx$new(model = model_reg, 
+#'                      data = data_reg)
 #'
-#' # fit the specified model to data under specified penalty levels
-#' r6_lslx$fit(penalty_method = "lasso",
-#'             lambda_grid = seq(.00, .30, .01))
+#' # fit specified model to data with lasso under specified penalty levels
+#' lslx_reg$fit(penalty_method = "lasso",
+#'              lambda_grid = seq(.00, .30, .01))
 #'
-#' # summarize fitting result under the penalty level selected by 'bic'
-#' r6_lslx$summarize(selector = "aic")
+#' # summarize fitting result under penalty level selected by 'aic'
+#' lslx_reg$summarize(selector = "aic")
 #'
 #'
-#' ## Semi-Confirmatory Factor Analysis ##
+#' ## EXAMPLE: Semi-Confirmatory Factor Analysis ##
 #' # run `vignette("factor-analysis")` to see the vignette
-#' model <-
-#' '
-#' visual  :=> x1 + x2 + x3
-#' textual :=> x4 + x5 + x6
-#' speed   :=> x7 + x8 + x9
-#' visual  :~> x4 + x5 + x6 + x7 + x8 + x9
-#' textual :~> x1 + x2 + x3 + x7 + x8 + x9
-#' speed   :~> x1 + x2 + x3 + x4 + x5 + x6
-#' visual  <=> fix(1)* visual
-#' textual <=> fix(1)* textual
-#' speed   <=> fix(1)* speed
-#' '
-#'
-#' r6_lslx <- lslx$new(model = model,
+#' # specify semi-confirmatory factor analysis model
+#' model_fa <- "visual  :=> x1 + x2 + x3
+#'              textual :=> x4 + x5 + x6
+#'              speed   :=> x7 + x8 + x9
+#'              visual  :~> x4 + x5 + x6 + x7 + x8 + x9
+#'              textual :~> x1 + x2 + x3 + x7 + x8 + x9
+#'              speed   :~> x1 + x2 + x3 + x4 + x5 + x6
+#'              visual  <=> fix(1) * visual
+#'              textual <=> fix(1) * textual
+#'              speed   <=> fix(1) * speed"
+#'           
+#' # initialize lslx object via specified model and raw data
+#' lslx_fa <- lslx$new(model = model_fa,
 #'                     data = lavaan::HolzingerSwineford1939)
-#' r6_lslx$fit(penalty_method = "mcp",
-#'             lambda_grid = seq(.01, .30, .01),
-#'             delta_grid = c(5, 10))
-#' r6_lslx$summarize(selector = "bic")
+#'                     
+#' # fit with mcp under specified penalty levels and convexity levels
+#' lslx_fa$fit(penalty_method = "mcp", 
+#'             lambda_grid = seq(.02, .60, .02), 
+#'             delta_grid = c(1.5, 3.0, Inf))
+#' 
+#' # summarize fitting result under penalty level selected by 'bic'
+#' lslx_fa$summarize(selector = "bic")
 #'
 #'
-#' ## Semi-Confirmatory Structural Equation Modeling ##
+#' ## EXAMPLE: Semi-Confirmatory Structural Equation Modeling ##
 #' # run `vignette("structural-equation-modeling")` to see the vignette
-#' model <-
-#' '
-#' fix(1) * x1 + x2 + x3   <=: ind60
-#' fix(1) * y1 + y2 + y3 + y4 <=: dem60
-#' fix(1) * y5 + y6 + y7 + y8 <=: dem65
-#' dem60 <= ind60
-#' dem65 <= ind60 + dem60
-#' '
+#' # specify structural equation modeling model
+#' model_sem <- "fix(1) * x1 + x2 + x3   <=: ind60
+#'               fix(1) * y1 + y2 + y3 + y4 <=: dem60
+#'               fix(1) * y5 + y6 + y7 + y8 <=: dem65
+#'               dem60 <= ind60
+#'               dem65 <= ind60 + dem60"
 #'
-#' # initialize an lslx object via specified model and sample covariance matrix
-#' r6_lslx <- lslx$new(model = model,
-#'                     sample_cov = cov(lavaan::PoliticalDemocracy),
-#'                     sample_size = nrow(lavaan::PoliticalDemocracy))
+#' # initialize lslx object via specified model and sample moments
+#' lslx_sem <- lslx$new(model = model_sem,
+#'                      sample_cov = cov(lavaan::PoliticalDemocracy),
+#'                      sample_size = nrow(lavaan::PoliticalDemocracy))
 #'
-#' # set some covariances of errors as penalized parameters
-#' r6_lslx$penalize_coefficient(name = c("y1<->y5",
-#'                                       "y2<->y4",
-#'                                       "y2<->y6",
-#'                                       "y3<->y7",
-#'                                       "y4<->y8",
-#'                                       "y6<->y8"))
+#' # set some covariances of errors as penalized 
+#' lslx_sem$penalize_coefficient(name = c("y1<->y5",
+#'                                        "y2<->y4",
+#'                                        "y2<->y6",
+#'                                        "y3<->y7",
+#'                                        "y4<->y8",
+#'                                        "y6<->y8"))
 #'
-#' r6_lslx$fit_mcp(lambda_grid = seq(.01, .30, .01),
-#'                 delta_grid = Inf)
-#' r6_lslx$summarize(selector = "aic")
-#'
-#'
-#' ## Semi-Confirmatory Multi-Group Factor Analysis ##
-#' # run `vignette("multi-group-analysis")` to see the vignette
-#' model <-
-#' '
-#' visual  :=> fix(1) * x1 + x2 + x3
-#' textual :=> fix(1) * x4 + x5 + x6
-#' speed   :=> fix(1) * x7 + x8 + x9
-#' '
-#'
-#' # school is set as group variable and Pasteur is specified as reference
-#' r6_lslx <- lslx$new(model = model,
-#'                     data = lavaan::HolzingerSwineford1939,
-#'                     group_variable = "school",
-#'                     reference_group = "Pasteur")
-#'
-#' # penalize increment components of loadings in 'Grant-White'
-#' r6_lslx$penalize_heterogeneity(block = "y<-f", group = "Grant-White")
-#'
-#' # penalize increment components of intercepts of responses in 'Grant-White'
-#' r6_lslx$penalize_heterogeneity(block = "y<-1", group = "Grant-White")
-#'
-#' # penalize increment components of means of latent factors in 'Grant-White'
-#' r6_lslx$free_directed(left = c("visual", "textual", "speed"),
-#'                       right = "1",
-#'                       group = "Grant-White")
-#' r6_lslx$fit_lasso(lambda_grid = seq(.01, .30, .01))
-#' r6_lslx$summarize(selector = "bic")
+#' # fit with lasso under default penalty levels
+#' lslx_sem$fit_lasso(lambda_length = 25)
+#' 
+#' # summarize fitting result under penalty level selected by 'abic'
+#' lslx_sem$summarize(selector = "abic")
 #'
 #'
-#' ## Semi-Confirmatory Factor Analysis with Missing Data ##
+#' ## EXAMPLE: Factor Analysis with Missing Data ##
 #' # run `vignette("missing-data-analysis")` to see the vignette
 #' # create missing values for x5 and x9 by the code in package semTools
-#' data <- lavaan::HolzingerSwineford1939
-#' data$x5 <- ifelse(data$x1 <= quantile(data$x1, .3), NA, data$x5)
-#' data$age <- data$ageyr + data$agemo/12
-#' data$x9 <- ifelse(data$age <= quantile(data$age, .3), NA, data$x9)
+#' data_miss <- lavaan::HolzingerSwineford1939
+#' data_miss$x5 <- ifelse(data_miss$x1 <= quantile(data_miss$x1, .3), 
+#'                        NA, data_miss$x5)
+#' data_miss$age <- data_miss$ageyr + data_miss$agemo/12
+#' data_miss$x9 <- ifelse(data_miss$age <= quantile(data_miss$age, .3), 
+#'                        NA, data_miss$x9)
+#' 
+#' # specify confirmatory factor analysis model
+#' model_miss <- "visual  :=> x1 + x2 + x3 
+#'                textual :=> x4 + x5 + x6
+#'                speed   :=> x7 + x8 + x9
+#'                visual  <=> 1 * visual
+#'                textual <=> 1 * textual
+#'                speed   <=> 1 * speed"
 #'
-#' model <-
-#' '
-#' visual  :=> x1 + x2 + x3
-#' textual :=> x4 + x5 + x6
-#' speed   :=> x7 + x8 + x9
-#' visual  :~> x4 + x5 + x6 + x7 + x8 + x9
-#' textual :~> x1 + x2 + x3 + x7 + x8 + x9
-#' speed   :~> x1 + x2 + x3 + x4 + x5 + x6
-#' visual  <=> fix(1) * visual
-#' textual <=> fix(1) * textual
-#' speed   <=> fix(1) * speed
-#' '
+#' # "ageyr" and "agemo" are set as auxiliary variables
+#' lslx_miss <- lslx$new(model = model_miss,
+#'                       data = data_miss,
+#'                       auxiliary_variable = c("ageyr", "agemo"))
+#'                       
+#' # penalize all covariances among residuals
+#' lslx_miss$penalize_block(block = "y<->y", 
+#'                          type = "fixed",
+#'                          verbose = FALSE)
+#' 
+#' # fit with lasso under default penalty levels
+#' lslx_miss$fit_lasso(lambda_length = 25)
+#' 
+#' # summarize fitting result under penalty level selected by 'raic'
+#' lslx_miss$summarize(selector = "raic")
+#' 
+#' 
+#' ## EXAMPLE: Multi-Group Factor Analysis ##
+#' # run `vignette("multi-group-analysis")` to see the vignette
+#' # specify multi-group factor analysis model
+#' model_mgfa <- "visual  :=> 1 * x1 + x2 + x3
+#'                textual :=> 1 * x4 + x5 + x6
+#'                speed   :=> 1 * x7 + x8 + x9"
+#' 
+#' # "school" is set as group variable and "Pasteur" is specified as reference
+#' lslx_mgfa <- lslx$new(model = model_mgfa,
+#'                       data = lavaan::HolzingerSwineford1939,
+#'                       group_variable = "school",
+#'                       reference_group = "Pasteur")
 #'
-#' # initialize an lslx object with specified auxiliary variables
-#' r6_lslx <- lslx$new(model = model,
-#'                     data = data,
-#'                     auxiliary_variable = c("ageyr", "agemo"))
-#' r6_lslx$fit_mcp(lambda_grid = seq(.01, .30, .01),
-#'                 delta_grid = c(5, 10))
-#' r6_lslx$summarize(selector = "bic")
+#' # penalize increment components of loadings and intercepts in 'Grant-White'
+#' lslx_mgfa$penalize_heterogeneity(block = c("y<-1", "y<-f"), 
+#'                                  group = "Grant-White")
 #'
-#'
+#' # free increment components of means of latent factors in 'Grant-White'
+#' lslx_mgfa$free_block(block = "f<-1", 
+#'                      group = "Grant-White")
+#'                      
+#' # fit with mcp under default penalty levels and specified convexity levels
+#' lslx_mgfa$fit_mcp(lambda_length = 25)
+#' 
+#' # summarize fitting result under penalty level selected by 'hbic'
+#' lslx_mgfa$summarize(selector = "hbic")
+#' 
 #' @export
 lslx <-
   R6::R6Class(

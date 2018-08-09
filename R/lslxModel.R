@@ -3,8 +3,11 @@ lslxModel <-
   R6::R6Class(
     classname = "lslxModel",
     public = list(
-      name_group = "character",
+      group_variable = "character",
       reference_group = "character",
+      weight_variable = "character",
+      auxiliary_variable = "character",
+      name_group = "character",
       name_response = "character",
       name_factor = "character",
       name_eta = "character",
@@ -18,10 +21,16 @@ lslxModel <-
 lslxModel$set("public",
               "initialize",
               function(model,
-                       name_group,
-                       reference_group) {
-                self$name_group <- name_group
+                       group_variable,
+                       reference_group,
+                       weight_variable,
+                       auxiliary_variable,
+                       name_group) {
+                self$group_variable <- group_variable
                 self$reference_group <- reference_group
+                self$weight_variable <- weight_variable
+                self$auxiliary_variable <- auxiliary_variable
+                self$name_group <- name_group
                 model_parsed <-
                   private$parse_model(model = model)
                 self$name_factor <-
@@ -30,6 +39,9 @@ lslxModel$set("public",
                 self$name_response <-
                   setdiff(x = unique(unlist(model_parsed[, c("left", "right")])),
                           y = c(self$name_factor, "1"))
+                self$auxiliary_variable <-
+                  setdiff(x = self$auxiliary_variable,
+                          y = self$name_response)
                 self$name_eta <-
                   c(self$name_response, self$name_factor)
                 self$name_endogenous <-
@@ -42,7 +54,7 @@ lslxModel$set("public",
                                  y = self$name_endogenous))
                 private$initialize_specification(model_parsed = model_parsed)
                 private$expand_specification_alpha()
-                private$expand_specification_psi()
+                private$expand_specification_phi()
                 self$specification <-
                   self$specification[order(
                     self$specification$reference,
@@ -53,7 +65,7 @@ lslxModel$set("public",
                     match(self$specification$left, self$name_eta),
                     decreasing = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),
                     method = "radix"
-                  ), ]
+                  ),]
               })
 
 ## \code{$parse_model()} parses specified model. ##
@@ -80,6 +92,25 @@ lslxModel$set("private",
                   unlist(x = strsplit(x = model_cleaned,
                                       split = "\n"),
                          use.names = FALSE)
+                model_split <-
+                  gsub(pattern = "=~",
+                       replacement = ":=>",
+                       x = model_split)
+                model_split <-
+                  gsub(pattern = "~~",
+                       replacement = "<=>",
+                       x = model_split)
+                model_split <-
+                  ifelse(
+                    !grepl(pattern = "<~|<~:|~>|:~>|<~>",
+                           x = model_split),
+                    gsub(
+                      pattern = "~",
+                      replacement = "<=",
+                      x = model_split
+                    ),
+                    model_split
+                  )
                 model_split <-
                   sapply(
                     X = c("<=:", "<~:", ":=>", ":~>",
@@ -131,7 +162,7 @@ lslxModel$set("private",
                               ,
                               drop = FALSE]
                 model_split <-
-                  model_split[, -1, drop = FALSE]
+                  model_split[,-1, drop = FALSE]
                 model_parsed <-
                   apply(
                     X = model_split,
@@ -191,7 +222,7 @@ lslxModel$set("private",
                           "\n  Please check the specified 'model'."
                         )
                       }
-                      if (any("["(model_parsed_i$left, !(
+                      if (any("["(model_parsed_i$left,!(
                         model_parsed_i$operator %in% c("<=>", "<~>")
                       )) == "1")) {
                         stop(
@@ -322,10 +353,15 @@ lslxModel$set("private",
                 
                 self$specification <-
                   self$specification[!duplicated(self$specification$relation,
-                                                 fromLast = TRUE), ]
+                                                 fromLast = TRUE),]
+                self$specification$prefix <- 
+                  gsub(pattern = " ", replacement = "",
+                       x = self$specification$prefix)
+                self$specification$prefix <- 
+                  gsub(pattern = "c\\(|\\(|\\)", replacement = "",
+                       x = self$specification$prefix)
                 prefix_split <-
                   strsplit(self$specification$prefix, ",")
-                
                 self$specification <-
                   do.call(what = rbind,
                           args = lapply(
@@ -373,14 +409,14 @@ lslxModel$set("private",
                               
                               rownames(specification_i) <-
                                 paste0(specification_i$relation,
-                                       "|",
+                                       "/",
                                        specification_i$group)
                               return(specification_i)
                             }
                           ))
                 self$specification$matrice <-
                   ifelse(self$specification$operator %in% c("<=>", "<~>"),
-                         "psi",
+                         "phi",
                          ifelse(
                            !(self$specification$operator %in%
                                c("<=:", "<~:", "<=", "<~")),
@@ -414,7 +450,7 @@ lslxModel$set("private",
                       block_middle <-
                         ifelse(matrice %in% c("alpha", "beta"),
                                "<-",
-                               ifelse(matrice == "psi",
+                               ifelse(matrice == "phi",
                                       "<->",
                                       ""))
                       block <-
@@ -423,22 +459,29 @@ lslxModel$set("private",
                     }
                   )
                 self$specification$type <-
-                  ifelse(grepl("fix", self$specification$prefix),
-                         "fixed",
-                         ifelse(
-                           grepl("pen", self$specification$prefix),
-                           "pen",
-                           ifelse(
-                             grepl("free", self$specification$prefix),
-                             "free",
-                             ifelse(
-                               self$specification$operator %in%
-                                 c("<=:", "<=", "<=>"),
-                               "free",
-                               "pen"
-                             )
-                           )
-                         ))
+                  ifelse(
+                    grepl("[[:digit:]]", self$specification$prefix) &
+                      !grepl("[[:alpha:]]", self$specification$prefix),
+                    "fixed",
+                    ifelse(
+                      grepl("fix", self$specification$prefix),
+                      "fixed",
+                      ifelse(
+                        grepl("pen", self$specification$prefix),
+                        "pen",
+                        ifelse(
+                          grepl("free", self$specification$prefix),
+                          "free",
+                          ifelse(
+                            self$specification$operator %in%
+                              c("<=:", "<=", "<=>"),
+                            "free",
+                            "pen"
+                          )
+                        )
+                      )
+                    )
+                  )
                 self$specification$start <-
                   as.numeric(gsub("[^[:digit:].-]",
                                   "",
@@ -514,7 +557,7 @@ lslxModel$set("private",
                                 )
                                 rownames(specification_alpha_i) <-
                                   paste0(specification_alpha_i$relation,
-                                         "|",
+                                         "/",
                                          specification_alpha_i$group)
                               } else {
                                 specification_alpha_i = data.frame()
@@ -528,17 +571,17 @@ lslxModel$set("private",
                         stringsAsFactors = FALSE)
               })
 
-## \code{$expand_specification_psi()} expand the specification table for covariances. ##
+## \code{$expand_specification_phi()} expand the specification table for covariances. ##
 lslxModel$set("private",
-              "expand_specification_psi",
+              "expand_specification_phi",
               function() {
-                specification_psi <-
+                specification_phi <-
                   do.call(what = rbind.data.frame,
                           args = lapply(
                             X = self$name_group,
                             FUN = function(name_group_i) {
                               if (length(self$name_exogenous) > 1) {
-                                relation_psi_i <-
+                                relation_phi_i <-
                                   setdiff(x = c(
                                     paste0(self$name_eta,
                                            "<->",
@@ -553,7 +596,7 @@ lslxModel$set("private",
                                   ),
                                   y = self$specification$relation[self$specification$group == name_group_i])
                               } else {
-                                relation_psi_i <-
+                                relation_phi_i <-
                                   setdiff(
                                     x = paste0(self$name_eta,
                                                "<->",
@@ -561,22 +604,22 @@ lslxModel$set("private",
                                     y = self$specification$relation[self$specification$group == name_group_i]
                                   )
                               }
-                              if (length(relation_psi_i) > 1) {
-                                left_psi_i <-
-                                  substr(relation_psi_i,
+                              if (length(relation_phi_i) > 1) {
+                                left_phi_i <-
+                                  substr(relation_phi_i,
                                          start = 1,
-                                         stop = regexpr("<->", relation_psi_i) - 1)
-                                right_psi_i <-
+                                         stop = regexpr("<->", relation_phi_i) - 1)
+                                right_phi_i <-
                                   substr(
-                                    relation_psi_i,
-                                    start = regexpr("<->", relation_psi_i) + 3,
-                                    stop = nchar(relation_psi_i)
+                                    relation_phi_i,
+                                    start = regexpr("<->", relation_phi_i) + 3,
+                                    stop = nchar(relation_phi_i)
                                   )
-                                specification_psi_i <-
+                                specification_phi_i <-
                                   data.frame(
-                                    relation = relation_psi_i,
-                                    left = left_psi_i,
-                                    right = right_psi_i,
+                                    relation = relation_phi_i,
+                                    left = left_phi_i,
+                                    right = right_phi_i,
                                     group = name_group_i,
                                     reference = ifelse(
                                       is.na(self$reference_group),
@@ -585,14 +628,14 @@ lslxModel$set("private",
                                              TRUE,
                                              FALSE)
                                     ),
-                                    matrice = "psi",
+                                    matrice = "phi",
                                     block =
                                       ifelse(
-                                        left_psi_i %in% self$name_factor,
-                                        ifelse(right_psi_i %in% self$name_factor,
+                                        left_phi_i %in% self$name_factor,
+                                        ifelse(right_phi_i %in% self$name_factor,
                                                "f<->f",
                                                "f<->y"),
-                                        ifelse(right_psi_i %in% self$name_factor,
+                                        ifelse(right_phi_i %in% self$name_factor,
                                                "y<->f",
                                                "y<->y")
                                       ),
@@ -600,18 +643,16 @@ lslxModel$set("private",
                                     start = NA_real_,
                                     stringsAsFactors = FALSE
                                   )
-                                rownames(specification_psi_i) <-
-                                  paste(specification_psi_i$relation,
-                                        specification_psi_i$group,
-                                        sep = "|")
-                                return(specification_psi_i)
+                                rownames(specification_phi_i) <-
+                                  paste(specification_phi_i$relation,
+                                        specification_phi_i$group,
+                                        sep = "/")
+                                return(specification_phi_i)
                               }
                             }
                           ))
                 self$specification <-
                   rbind(self$specification,
-                        specification_psi,
+                        specification_phi,
                         stringsAsFactors = FALSE)
               })
-
-

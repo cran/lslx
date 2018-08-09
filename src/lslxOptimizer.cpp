@@ -20,7 +20,8 @@ public:
   double tol_in, tol_out, tol_other;
   double step_size, armijo;
   double ridge_cov, ridge_hessian;
-  bool positive_diag;
+  bool warm_start, positive_variance, enforce_cd;
+  double minimum_variance;
   bool response, regularizer;
   
   std::string regularizer_type;
@@ -39,7 +40,7 @@ public:
   Rcpp::IntegerVector theta_left_idx, theta_right_idx, theta_flat_idx;
   
   double baseline_loss_value;
-  int baseline_degree_of_freedom;
+  int baseline_degrees_of_freedom;
   
   Eigen::MatrixXd identity_y, identity_eta, identity_theta;  
   Eigen::SparseMatrix<double> identity_y2, duplication_y;
@@ -48,9 +49,9 @@ public:
   Rcpp::NumericVector theta_start, theta_value, theta_direction;
   Rcpp::IntegerVector theta_est_idx;
   
-  Rcpp::List alpha, beta, beta_pinv, psi;
+  Rcpp::List alpha, beta, beta_pinv, phi;
   Rcpp::List mu, sigma, sigma_inv;
-  Rcpp::List alpha_derivative, beta_derivative, psi_derivative;
+  Rcpp::List alpha_derivative, beta_derivative, phi_derivative;
   
   Rcpp::List residual_weight;
   Rcpp::List moment_jacobian;
@@ -70,8 +71,8 @@ public:
   Eigen::MatrixXd objective_gradient;
   
   double objective_gradient_abs_max, objective_hessian_convexity;
-  int n_iter_out, n_nonzero_coefficient, degree_of_freedom;
-  double robust_degree_of_freedom, scaling_factor;
+  int n_iter_out, n_nonzero_coefficient, degrees_of_freedom;
+  double robust_degrees_of_freedom, scaling_factor;
   
   double aic, aic3, caic;
   double bic, abic, hbic;
@@ -86,7 +87,7 @@ public:
   
   void set_regularizer(Rcpp::CharacterVector regularizer_type_, double lambda_, double delta_);
   void set_theta_value(Rcpp::NumericVector theta_value_);
-  void update_coefficient_matrice();
+  void update_coefficient_matrix();
   void update_implied_moment();
   void update_residual_weight();
   void update_moment_jacobian();
@@ -105,11 +106,11 @@ public:
   void update_theta_start();
   void update_numerical_condition();
   void update_information_criterion();
-  void update_fit_indice();
+  void update_fit_index();
   void update_coefficient();
   Rcpp::NumericVector extract_numerical_condition();
   Rcpp::NumericVector extract_information_criterion();
-  Rcpp::NumericVector extract_fit_indice();
+  Rcpp::NumericVector extract_fit_index();
   Rcpp::NumericVector extract_coefficient();
   Eigen::MatrixXd slice_col(Eigen::MatrixXd x, Rcpp::IntegerVector col_idx);
   Eigen::MatrixXd slice_both(Eigen::MatrixXd x, 
@@ -144,8 +145,11 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
   step_size = Rcpp::as<double>(control["step_size"]);
   ridge_cov = Rcpp::as<double>(control["ridge_cov"]);
   ridge_hessian = Rcpp::as<double>(control["ridge_hessian"]);
+  minimum_variance = Rcpp::as<double>(control["minimum_variance"]);
   armijo = Rcpp::as<double>(control["armijo"]);
-  positive_diag = Rcpp::as<bool>(control["positive_diag"]);
+  warm_start = Rcpp::as<bool>(control["warm_start"]);
+  positive_variance = Rcpp::as<bool>(control["positive_variance"]);
+  enforce_cd = Rcpp::as<bool>(control["enforce_cd"]);
   response = Rcpp::as<bool>(control["response"]);
   regularizer = Rcpp::as<bool>(control["regularizer"]);
   iter_out = -1;
@@ -199,10 +203,10 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
     alpha.push_back(Eigen::MatrixXd::Zero(n_eta, 1));
     beta.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
     beta_pinv.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
-    psi.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
+    phi.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
     alpha_derivative.push_back(Eigen::MatrixXd::Zero(n_eta, 1));
     beta_derivative.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
-    psi_derivative.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
+    phi_derivative.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
     mu.push_back(Eigen::MatrixXd::Zero(n_response, 1));
     sigma.push_back(Eigen::MatrixXd::Zero(n_response, n_response));
     sigma_inv.push_back(Eigen::MatrixXd::Zero(n_response, n_response));
@@ -211,7 +215,7 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
   }
   
   baseline_loss_value = Rcpp::as<double>(Rcpp::as<Rcpp::NumericVector>(supplied_result["baseline_model"])["loss_value"]);
-  baseline_degree_of_freedom = Rcpp::as<double>(Rcpp::as<Rcpp::NumericVector>(supplied_result["baseline_model"])["degree_of_freedom"]);
+  baseline_degrees_of_freedom = Rcpp::as<double>(Rcpp::as<Rcpp::NumericVector>(supplied_result["baseline_model"])["degrees_of_freedom"]);
   
   theta_start = Rcpp::clone(Rcpp::as<NumericVector>(supplied_result["fitted_start"]));
   theta_value = Rcpp::clone(Rcpp::as<NumericVector>(supplied_result["fitted_start"]));
@@ -248,7 +252,7 @@ void lslxOptimizer::set_theta_value(Rcpp::NumericVector theta_value_) {
 }
 
 // method for updating coefficient values
-void lslxOptimizer::update_coefficient_matrice() {
+void lslxOptimizer::update_coefficient_matrix() {
   Rcpp::IntegerVector theta_group_idx_unique = Rcpp::sort_unique(theta_group_idx);
   
   Rcpp::IntegerVector theta_left_idx_i0;
@@ -314,14 +318,14 @@ void lslxOptimizer::update_coefficient_matrice() {
           break;
         }
         case 3: {
-          Eigen::Map<MatrixXd> psi_i(Rcpp::as< Eigen::Map <MatrixXd> >(psi[j - 1]));
+          Eigen::Map<MatrixXd> phi_i(Rcpp::as< Eigen::Map <MatrixXd> >(phi[j - 1]));
           int k;
           for (k = 0; k < theta_value_ij.size(); k ++) {
             theta_left_idx_ijk = theta_left_idx_ij[k];
             theta_right_idx_ijk = theta_right_idx_ij[k];
             theta_value_ijk = theta_value_ij[k];
-            psi_i(theta_left_idx_ijk, theta_right_idx_ijk) = theta_value_ijk;
-            psi_i(theta_right_idx_ijk, theta_left_idx_ijk) = theta_value_ijk;
+            phi_i(theta_left_idx_ijk, theta_right_idx_ijk) = theta_value_ijk;
+            phi_i(theta_right_idx_ijk, theta_left_idx_ijk) = theta_value_ijk;
           }
           break;
         }
@@ -361,19 +365,19 @@ void lslxOptimizer::update_coefficient_matrice() {
           break;
         }
         case 3: {
-          Eigen::Map<MatrixXd> psi_i(Rcpp::as< Eigen::Map <MatrixXd> >(psi[j - 1]));
+          Eigen::Map<MatrixXd> phi_i(Rcpp::as< Eigen::Map <MatrixXd> >(phi[j - 1]));
           for (k = 0; k < theta_value_i0.size(); k ++) {
             theta_left_idx_i0k = theta_left_idx_i0[k];
             theta_right_idx_i0k = theta_right_idx_i0[k];
             theta_value_i0k = theta_value_i0[k];
             if (Rcpp::is_true(Rcpp::any(j == theta_group_idx_unique))) {
-              psi_i(theta_left_idx_i0k, theta_right_idx_i0k) =
-                psi_i(theta_left_idx_i0k, theta_right_idx_i0k) + theta_value_i0k;
-              psi_i(theta_right_idx_i0k, theta_left_idx_i0k) =
-                psi_i(theta_left_idx_i0k, theta_right_idx_i0k);
+              phi_i(theta_left_idx_i0k, theta_right_idx_i0k) =
+                phi_i(theta_left_idx_i0k, theta_right_idx_i0k) + theta_value_i0k;
+              phi_i(theta_right_idx_i0k, theta_left_idx_i0k) =
+                phi_i(theta_left_idx_i0k, theta_right_idx_i0k);
             } else {
-              psi_i(theta_left_idx_i0k, theta_right_idx_i0k) = theta_value_i0k;
-              psi_i(theta_right_idx_i0k, theta_left_idx_i0k) = theta_value_i0k;
+              phi_i(theta_left_idx_i0k, theta_right_idx_i0k) = theta_value_i0k;
+              phi_i(theta_right_idx_i0k, theta_left_idx_i0k) = theta_value_i0k;
             }
           }
           break;
@@ -390,7 +394,7 @@ void lslxOptimizer::update_implied_moment() {
   for (i = 0; i < n_group; i++) {
     Eigen::Map<Eigen::MatrixXd> alpha_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(alpha[i]));
     Eigen::Map<Eigen::MatrixXd> beta_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta[i]));
-    Eigen::Map<Eigen::MatrixXd> psi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi[i]));
+    Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
     
     Eigen::Map<MatrixXd> beta_pinv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_pinv[i]));
     Eigen::Map<MatrixXd> mu_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(mu[i]));  
@@ -399,7 +403,7 @@ void lslxOptimizer::update_implied_moment() {
     
     beta_pinv_i = (identity_eta - beta_i).inverse();
     mu_i =  beta_pinv_i.topRows(n_response) * alpha_i;
-    sigma_i =  beta_pinv_i.topRows(n_response) * psi_i * beta_pinv_i.topRows(n_response).transpose();
+    sigma_i =  beta_pinv_i.topRows(n_response) * phi_i * beta_pinv_i.topRows(n_response).transpose();
     sigma_inv_i = sigma_i.inverse();
   }
 }
@@ -435,7 +439,7 @@ void lslxOptimizer::update_moment_jacobian() {
     n_theta_sum = 0;
     Eigen::Map<Eigen::MatrixXd> alpha_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(alpha[i]));
     Eigen::Map<Eigen::MatrixXd> beta_pinv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_pinv[i]));
-    Eigen::Map<Eigen::MatrixXd> psi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi[i]));
+    Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
     Eigen::Map<Eigen::MatrixXd> moment_jacobian_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(moment_jacobian[i]));
     
     for (j = 0; j < theta_group_idx_unique.size(); j++) {
@@ -473,7 +477,7 @@ void lslxOptimizer::update_moment_jacobian() {
                   slice_col(
                     ((elimination_y * (commutation_y + identity_y2)) * 
                       kroneckerProduct(
-                        (beta_pinv_i.topRows(n_response) * psi_i * beta_pinv_i.transpose()), 
+                        (beta_pinv_i.topRows(n_response) * phi_i * beta_pinv_i.transpose()), 
                         beta_pinv_i.topRows(n_response))),
                         theta_flat_idx_jk);
               break;
@@ -533,10 +537,10 @@ void lslxOptimizer::update_loss_gradient_direct() {
     Eigen::Map<Eigen::MatrixXd> sigma_inv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(sigma_inv[i]));
     Eigen::Map<Eigen::MatrixXd> alpha_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(alpha[i]));
     Eigen::Map<Eigen::MatrixXd> beta_pinv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_pinv[i]));
-    Eigen::Map<Eigen::MatrixXd> psi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi[i]));
+    Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
     Eigen::Map<Eigen::MatrixXd> alpha_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(alpha_derivative[i]));
     Eigen::Map<Eigen::MatrixXd> beta_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_derivative[i]));
-    Eigen::Map<Eigen::MatrixXd> psi_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi_derivative[i]));
+    Eigen::Map<Eigen::MatrixXd> phi_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi_derivative[i]));
     weight_mu_i = 2 * (saturated_mean_i - mu_i).transpose() * sigma_inv_i;
     weight_sigma_i = sigma_inv_i * (saturated_cov_i - sigma_i + (saturated_mean_i - mu_i) * (saturated_mean_i - mu_i).transpose()) * sigma_inv_i;
     alpha_derivative_i = - (weight_mu_i * beta_pinv_i.topRows(n_response)).transpose();
@@ -544,10 +548,10 @@ void lslxOptimizer::update_loss_gradient_direct() {
       (beta_pinv_i.topRows(n_response).transpose() * weight_mu_i.transpose() * 
         alpha_i.transpose() * beta_pinv_i.transpose()) +  
         2 * (beta_pinv_i.topRows(n_response).transpose() * weight_sigma_i * 
-        beta_pinv_i.topRows(n_response) * psi_i * beta_pinv_i.transpose()));
-    psi_derivative_i = - 2 * (beta_pinv_i.topRows(n_response).transpose() * weight_sigma_i * beta_pinv_i.topRows(n_response));
+        beta_pinv_i.topRows(n_response) * phi_i * beta_pinv_i.transpose()));
+    phi_derivative_i = - 2 * (beta_pinv_i.topRows(n_response).transpose() * weight_sigma_i * beta_pinv_i.topRows(n_response));
     for (j = 0; j < n_eta; j++) {
-      psi_derivative_i(j, j) = 0.5 * psi_derivative_i(j, j);
+      phi_derivative_i(j, j) = 0.5 * phi_derivative_i(j, j);
     } 
   }
   for (i = 0; i < n_theta; i++) {
@@ -561,8 +565,8 @@ void lslxOptimizer::update_loss_gradient_direct() {
           Eigen::Map<Eigen::MatrixXd> beta_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_derivative[j]));
           loss_gradient(i, 0) += sample_proportion_i * beta_derivative_i(theta_left_idx[i], theta_right_idx[i]);
         } else if (theta_matrice_idx[i] == 3) {
-          Eigen::Map<Eigen::MatrixXd> psi_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi_derivative[j]));
-          loss_gradient(i, 0) += sample_proportion_i * psi_derivative_i(theta_left_idx[i], theta_right_idx[i]);
+          Eigen::Map<Eigen::MatrixXd> phi_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi_derivative[j]));
+          loss_gradient(i, 0) += sample_proportion_i * phi_derivative_i(theta_left_idx[i], theta_right_idx[i]);
         } else {}
       }
     } else {
@@ -574,8 +578,8 @@ void lslxOptimizer::update_loss_gradient_direct() {
         Eigen::Map<Eigen::MatrixXd> beta_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_derivative[theta_group_idx[i] - 1]));
         loss_gradient(i, 0) += sample_proportion_i * beta_derivative_i(theta_left_idx[i], theta_right_idx[i]);
       } else if (theta_matrice_idx[i] == 3) {
-        Eigen::Map<Eigen::MatrixXd> psi_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi_derivative[theta_group_idx[i] - 1]));
-        loss_gradient(i, 0) += sample_proportion_i * psi_derivative_i(theta_left_idx[i], theta_right_idx[i]);
+        Eigen::Map<Eigen::MatrixXd> phi_derivative_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi_derivative[theta_group_idx[i] - 1]));
+        loss_gradient(i, 0) += sample_proportion_i * phi_derivative_i(theta_left_idx[i], theta_right_idx[i]);
       } else {}
     }
   }
@@ -627,7 +631,7 @@ void lslxOptimizer::update_loss_observed_hessian() {
   for (i = 0; i < n_theta; i++) {
     theta_value = Rcpp::clone(theta_start);
     theta_value[i] = theta_value[i] + tol_other;
-    update_coefficient_matrice();
+    update_coefficient_matrix();
     update_implied_moment();
     update_loss_gradient_direct(); 
     loss_observed_hessian.col(i) = (loss_gradient - loss_gradient_0) / tol_other;
@@ -707,7 +711,7 @@ void lslxOptimizer::update_regularizer_gradient() {
         } else if ((theta_value[i] > (lambda * delta)) | ((- theta_value[i]) > (lambda * delta))) {
           regularizer_gradient(i, 0) = 0;
         } else {
-          regularizer_gradient(i, 0) = lambda;
+          regularizer_gradient(i, 0) = sign(theta_is_pen[i]) * lambda;
         }
       } else {
         regularizer_gradient(i, 0) = 0;
@@ -743,7 +747,7 @@ void lslxOptimizer::update_theta_direction() {
   Eigen::MatrixXd g, h;
   double z_r, z_l;
   int i, j;
-  if (regularizer) {
+  if (regularizer | enforce_cd) {
     g = loss_gradient;
     if (algorithm == "bfgs") {
       h = loss_bfgs_hessian;
@@ -824,17 +828,17 @@ void lslxOptimizer::update_theta_value() {
   for (i = 0; i < iter_armijo_max; i++) {
     step_size_i = std::pow(step_size, i);
     theta_value = theta_start + step_size_i * theta_direction;
-    if (positive_diag) {
+    if (positive_variance) {
       if (!Rcpp::is_true(Rcpp::any(0 == theta_group_idx_unique))) {
         theta_value = 
-          Rcpp::ifelse((theta_value < 0) & (theta_is_diag), ridge_cov, theta_value);
+          Rcpp::ifelse((theta_value < 0) & (theta_is_diag), minimum_variance, theta_value);
       } else {
         theta_value = 
           Rcpp::ifelse(((theta_value < 0) & theta_is_diag & (theta_group_idx == 0)), 
-                       ridge_cov, theta_value);
+                       minimum_variance, theta_value);
       }
     }
-    update_coefficient_matrice();
+    update_coefficient_matrix();
     update_implied_moment();
     update_loss_value();
     update_regularizer_value();
@@ -860,7 +864,7 @@ void lslxOptimizer::update_theta_start() {
 void lslxOptimizer::update_coefficient() {
   Rcpp::NumericVector objective_gradient_abs(n_theta);
   if (iter_out == -1) {
-    update_coefficient_matrice();
+    update_coefficient_matrix();
     update_implied_moment();
     update_loss_value();
     update_residual_weight();
@@ -875,21 +879,12 @@ void lslxOptimizer::update_coefficient() {
   update_objective_value();
   
   int i;  
-  for (iter_out = 1; iter_out <= iter_out_max; iter_out++) {
-    update_theta_direction();
-    update_theta_value();
-    if (algorithm == "bfgs") {
-      update_loss_gradient_direct();
-      update_loss_bfgs_hessian();
-    } else if (algorithm == "fisher") {
-      update_residual_weight();
-      update_moment_jacobian();
-      update_loss_gradient();
-      update_loss_expected_hessian();
-    } else {}
+  if (iter_out_max == -1) {
     update_regularizer_gradient();
     update_objective_gradient();
     update_theta_start();
+    n_iter_out = 0;
+    iter_out = 0;
     for (i = 0; i < n_theta; i++) {
       if (theta_is_free[i] | theta_is_pen[i]) {
         objective_gradient_abs[i] = std::fabs(objective_gradient(i, 0));
@@ -898,10 +893,35 @@ void lslxOptimizer::update_coefficient() {
       }
     }
     objective_gradient_abs_max = Rcpp::max(objective_gradient_abs);
-    n_iter_out = iter_out;
-    if ((objective_gradient_abs_max < tol_out) | (iter_out == iter_out_max)) {
-      iter_out = 0;
-      break;
+  } else {
+    for (iter_out = 1; iter_out <= iter_out_max; iter_out++) {
+      update_theta_direction();
+      update_theta_value();
+      if (algorithm == "bfgs") {
+        update_loss_gradient_direct();
+        update_loss_bfgs_hessian();
+      } else if (algorithm == "fisher") {
+        update_residual_weight();
+        update_moment_jacobian();
+        update_loss_gradient();
+        update_loss_expected_hessian();
+      } else {}
+      update_regularizer_gradient();
+      update_objective_gradient();
+      update_theta_start();
+      for (i = 0; i < n_theta; i++) {
+        if (theta_is_free[i] | theta_is_pen[i]) {
+          objective_gradient_abs[i] = std::fabs(objective_gradient(i, 0));
+        } else {
+          objective_gradient_abs[i] = - INFINITY;
+        }
+      }
+      objective_gradient_abs_max = Rcpp::max(objective_gradient_abs);
+      n_iter_out = iter_out;
+      if ((objective_gradient_abs_max < tol_out) | (iter_out == iter_out_max)) {
+        iter_out = 0;
+        break;
+      }
     }
   }
 }
@@ -934,7 +954,7 @@ void lslxOptimizer::update_numerical_condition() {
   }
   objective_hessian_convexity = Rcpp::min(objective_hessian_diagonal);
   n_nonzero_coefficient = idx_is_effective.size(); 
-  degree_of_freedom = n_group * n_moment - n_nonzero_coefficient;
+  degrees_of_freedom = n_group * n_moment - n_nonzero_coefficient;
   if (response) {
     update_moment_jacobian();
     update_residual_weight();
@@ -957,12 +977,12 @@ void lslxOptimizer::update_numerical_condition() {
           n_moment, n_theta) = moment_jacobian_i;
       }
       moment_jacobian_matrix = slice_col(moment_jacobian_matrix, idx_is_effective);
-      robust_degree_of_freedom = 0.5 * double(n_observation) * (saturated_moment_acov_matrix * 
+      robust_degrees_of_freedom = 0.5 * double(n_observation) * (saturated_moment_acov_matrix * 
         (residual_weight_matrix - (residual_weight_matrix * moment_jacobian_matrix) *
         (moment_jacobian_matrix.transpose() * residual_weight_matrix * moment_jacobian_matrix).inverse() *
         (moment_jacobian_matrix.transpose() * residual_weight_matrix))).diagonal().sum();
-      if (degree_of_freedom > 0) {
-        scaling_factor = robust_degree_of_freedom / degree_of_freedom;
+      if (degrees_of_freedom > 0) {
+        scaling_factor = robust_degrees_of_freedom / degrees_of_freedom;
       } else {
         scaling_factor = NAN;
       }
@@ -970,47 +990,47 @@ void lslxOptimizer::update_numerical_condition() {
       scaling_factor = NAN;      
     }
   } else {
-    robust_degree_of_freedom = NAN;
+    robust_degrees_of_freedom = NAN;
     scaling_factor = NAN;
   }
 }
 
 // method for updating final information criterion
 void lslxOptimizer::update_information_criterion() {
-  aic = loss_value - (2.0 / double(n_observation)) * double(degree_of_freedom);
-  aic3 = loss_value - (3.0 / double(n_observation)) * double(degree_of_freedom);
-  caic = loss_value - ((1 + std::log(double(n_observation))) / double(n_observation)) * double(degree_of_freedom);
+  aic = loss_value - (2.0 / double(n_observation)) * double(degrees_of_freedom);
+  aic3 = loss_value - (3.0 / double(n_observation)) * double(degrees_of_freedom);
+  caic = loss_value - ((1 + std::log(double(n_observation))) / double(n_observation)) * double(degrees_of_freedom);
   
-  bic = loss_value - (std::log(double(n_observation)) / double(n_observation)) * double(degree_of_freedom);
-  abic = loss_value - (std::log((double(n_observation) + 2.0) / 24.0) / double(n_observation)) * double(degree_of_freedom);
-  hbic = loss_value - (std::log(double(n_observation) / (2.0 * 3.1415926)) / double(n_observation)) * double(degree_of_freedom);
+  bic = loss_value - (std::log(double(n_observation)) / double(n_observation)) * double(degrees_of_freedom);
+  abic = loss_value - (std::log((double(n_observation) + 2.0) / 24.0) / double(n_observation)) * double(degrees_of_freedom);
+  hbic = loss_value - (std::log(double(n_observation) / (2.0 * 3.1415926)) / double(n_observation)) * double(degrees_of_freedom);
   
-  raic = loss_value - (2.0 / double(n_observation)) * double(robust_degree_of_freedom);
-  raic3 = loss_value - (3.0 / double(n_observation)) * double(robust_degree_of_freedom);
-  rcaic = loss_value - ((1 + std::log(double(n_observation))) / double(n_observation)) * double(robust_degree_of_freedom);
+  raic = loss_value - (2.0 / double(n_observation)) * double(robust_degrees_of_freedom);
+  raic3 = loss_value - (3.0 / double(n_observation)) * double(robust_degrees_of_freedom);
+  rcaic = loss_value - ((1 + std::log(double(n_observation))) / double(n_observation)) * double(robust_degrees_of_freedom);
   
-  rbic = loss_value - (std::log(double(n_observation)) / double(n_observation)) * double(robust_degree_of_freedom);
-  rabic = loss_value - (std::log((double(n_observation) + 2.0) / 24.0) / double(n_observation)) * double(robust_degree_of_freedom);
-  rhbic = loss_value - (std::log(double(n_observation) / (2.0 * 3.1415926)) / double(n_observation)) * double(robust_degree_of_freedom);
+  rbic = loss_value - (std::log(double(n_observation)) / double(n_observation)) * double(robust_degrees_of_freedom);
+  rabic = loss_value - (std::log((double(n_observation) + 2.0) / 24.0) / double(n_observation)) * double(robust_degrees_of_freedom);
+  rhbic = loss_value - (std::log(double(n_observation) / (2.0 * 3.1415926)) / double(n_observation)) * double(robust_degrees_of_freedom);
   
 }
 
-// method for updating final fit indice
-void lslxOptimizer::update_fit_indice() {
-  if ((degree_of_freedom == 0) & (loss_value > std::sqrt(DBL_EPSILON))) {
+// method for updating final fit index
+void lslxOptimizer::update_fit_index() {
+  if ((degrees_of_freedom == 0) & (loss_value > std::sqrt(DBL_EPSILON))) {
     rmsea = NAN;
   } else {
     if (loss_value < std::sqrt(DBL_EPSILON)) {
       rmsea = 0;
     } else {
-      rmsea = std::sqrt(n_group * std::max(((loss_value / double(degree_of_freedom)) - 
+      rmsea = std::sqrt(n_group * std::max(((loss_value / double(degrees_of_freedom)) - 
         (1 / double(n_observation))), 0.0)); 
     }
   }
   
-  double cfi_num = std::max((double(n_observation) * loss_value - double(degree_of_freedom)), 0.0);
-  double cfi_den = std::max(std::max(double(n_observation) * loss_value - double(degree_of_freedom),
-                                     double(n_observation) * baseline_loss_value - double(baseline_degree_of_freedom)), 0.0);
+  double cfi_num = std::max((double(n_observation) * loss_value - double(degrees_of_freedom)), 0.0);
+  double cfi_den = std::max(std::max(double(n_observation) * loss_value - double(degrees_of_freedom),
+                                     double(n_observation) * baseline_loss_value - double(baseline_degrees_of_freedom)), 0.0);
   if ((cfi_num < std::sqrt(DBL_EPSILON)) & (cfi_den < std::sqrt(DBL_EPSILON))) {
     cfi = NAN;
   } else {
@@ -1020,15 +1040,15 @@ void lslxOptimizer::update_fit_indice() {
       cfi = 1 - cfi_num / cfi_den;
     }
   }
-  double nnfi_0 = (double(n_observation) * baseline_loss_value) / double(baseline_degree_of_freedom);
+  double nnfi_0 = (double(n_observation) * baseline_loss_value) / double(baseline_degrees_of_freedom);
   double nnfi_1;
-  if ((loss_value > std::sqrt(DBL_EPSILON)) & (degree_of_freedom == 0)) {
+  if ((loss_value > std::sqrt(DBL_EPSILON)) & (degrees_of_freedom == 0)) {
     nnfi = NAN;
   } else {
     if (loss_value < std::sqrt(DBL_EPSILON)) {
       nnfi_1 = 0;
     } else {
-      nnfi_1 = (double(n_observation) * loss_value) / double(degree_of_freedom);
+      nnfi_1 = (double(n_observation) * loss_value) / double(degrees_of_freedom);
     }
     nnfi = (nnfi_0 - nnfi_1) / (nnfi_0 - 1.0);
     nnfi = std::min(nnfi, 1.0);
@@ -1069,8 +1089,8 @@ Rcpp::NumericVector lslxOptimizer::extract_numerical_condition() {
       _["n_iter_out"] = n_iter_out,
       _["loss_value"] = loss_value,
       _["n_nonzero_coefficient"] = n_nonzero_coefficient,
-      _["degree_of_freedom"] = degree_of_freedom,
-      _["robust_degree_of_freedom"] = robust_degree_of_freedom,
+      _["degrees_of_freedom"] = degrees_of_freedom,
+      _["robust_degrees_of_freedom"] = robust_degrees_of_freedom,
       _["scaling_factor"] = scaling_factor);
   return Rcpp::clone(numerical_condition);
 }
@@ -1094,15 +1114,15 @@ Rcpp::NumericVector lslxOptimizer::extract_information_criterion() {
   return Rcpp::clone(information_criterion);
 }
 
-// method for extracting final fit indice
-Rcpp::NumericVector lslxOptimizer::extract_fit_indice() {
-  Rcpp::NumericVector fit_indice = 
+// method for extracting final fit index
+Rcpp::NumericVector lslxOptimizer::extract_fit_index() {
+  Rcpp::NumericVector fit_index = 
     Rcpp::NumericVector::create(
       _["rmsea"] = rmsea,
       _["cfi"] = cfi,
       _["nnfi"] = nnfi,
       _["srmr"] = srmr);
-  return Rcpp::clone(fit_indice);
+  return Rcpp::clone(fit_index);
 }
 
 // method for extracting final coefficient
@@ -1228,15 +1248,19 @@ void compute_regularized_path_cpp(
                           reduced_model,
                           control,
                           supplied_result);
+  Rcpp::NumericVector theta_start_zero = Rcpp::clone(optimizer.theta_start);
   Rcpp::NumericVector lambda_grid = Rcpp::as<Rcpp::NumericVector>(control["lambda_grid"]);
   Rcpp::NumericVector delta_grid = Rcpp::as<Rcpp::NumericVector>(control["delta_grid"]);
   Rcpp::List numerical_condition = Rcpp::as<Rcpp::List>(fitted_result["numerical_condition"]);
   Rcpp::List information_criterion = Rcpp::as<Rcpp::List>(fitted_result["information_criterion"]);
-  Rcpp::List fit_indice = Rcpp::as<Rcpp::List>(fitted_result["fit_indice"]);
+  Rcpp::List fit_index = Rcpp::as<Rcpp::List>(fitted_result["fit_index"]);
   Rcpp::List coefficient = Rcpp::as<Rcpp::List>(fitted_result["coefficient"]);
   
   int i, j, idx;
   for (i = 0; i < lambda_grid.size(); i++) {
+    if (!optimizer.warm_start) {
+      optimizer.set_theta_value(theta_start_zero);
+    }
     for (j = 0; j < delta_grid.size(); j++) {
       optimizer.set_regularizer(
         Rcpp::as< Rcpp::CharacterVector >(control["penalty_method"]), 
@@ -1244,38 +1268,38 @@ void compute_regularized_path_cpp(
       optimizer.update_coefficient();
       optimizer.update_numerical_condition();
       optimizer.update_information_criterion();
-      optimizer.update_fit_indice();
+      optimizer.update_fit_index();
       idx = i * delta_grid.size() + j;
       coefficient[idx] = optimizer.extract_coefficient();
       numerical_condition[idx] = optimizer.extract_numerical_condition();
       information_criterion[idx] = optimizer.extract_information_criterion();
-      fit_indice[idx] = optimizer.extract_fit_indice();
+      fit_index[idx] = optimizer.extract_fit_index();
     }
   }
 }
 
 // compute coefficient matrice
 // [[Rcpp::export]]
-Rcpp::List compute_coefficient_matrice_cpp(
+Rcpp::List compute_coefficient_matrix_cpp(
     Rcpp::NumericVector theta_value,
     Rcpp::List reduced_data,
     Rcpp::List reduced_model,
     Rcpp::List control,
     Rcpp::List supplied_result) {
-  Rcpp::List coefficient_matrice;
+  Rcpp::List coefficient_matrix;
   lslxOptimizer optimizer(reduced_data,
                           reduced_model,
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   
-  coefficient_matrice = 
+  coefficient_matrix = 
     Rcpp::List::create(Rcpp::Named("alpha") = optimizer.alpha,
                        Rcpp::Named("beta") = optimizer.beta,
-                       Rcpp::Named("psi") = optimizer.psi);
+                       Rcpp::Named("phi") = optimizer.phi);
   
-  return Rcpp::wrap(coefficient_matrice);
+  return Rcpp::wrap(coefficient_matrix);
 }
 
 // compute implied covariance
@@ -1292,7 +1316,7 @@ Rcpp::List compute_implied_cov_cpp(
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   
   implied_cov = optimizer.sigma;
@@ -1313,7 +1337,7 @@ Rcpp::List compute_implied_mean_cpp(
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   
   implied_mean = optimizer.mu;
@@ -1336,7 +1360,7 @@ Rcpp::NumericMatrix compute_moment_jacobian_cpp(
     Eigen::MatrixXd::Zero(optimizer.n_group * optimizer.n_moment, 
                           optimizer.n_theta);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   optimizer.update_moment_jacobian();
   int i;
@@ -1363,7 +1387,7 @@ Rcpp::NumericMatrix compute_bfgs_hessian_cpp(
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   
   optimizer.update_residual_weight();
@@ -1376,52 +1400,52 @@ Rcpp::NumericMatrix compute_bfgs_hessian_cpp(
 
 // compute expected fisher
 // [[Rcpp::export]]
-Rcpp::NumericMatrix compute_expected_fisher_cpp(
+Rcpp::NumericMatrix compute_expected_information_cpp(
     Rcpp::NumericVector theta_value,
     Rcpp::List reduced_data,
     Rcpp::List reduced_model,
     Rcpp::List control,
     Rcpp::List supplied_result) {
-  Eigen::MatrixXd expected_fisher;
+  Eigen::MatrixXd expected_information;
   lslxOptimizer optimizer(reduced_data,
                           reduced_model,
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   
   optimizer.update_residual_weight();
   optimizer.update_moment_jacobian();
   optimizer.update_loss_expected_hessian();
-  expected_fisher = 0.5 * optimizer.loss_expected_hessian;
-  return Rcpp::wrap(expected_fisher);
+  expected_information = 0.5 * optimizer.loss_expected_hessian;
+  return Rcpp::wrap(expected_information);
 }
 
 // compute observed fisher
 // [[Rcpp::export]]
-Rcpp::NumericMatrix compute_observed_fisher_cpp(
+Rcpp::NumericMatrix compute_observed_information_cpp(
     Rcpp::NumericVector theta_value,
     Rcpp::List reduced_data,
     Rcpp::List reduced_model,
     Rcpp::List control,
     Rcpp::List supplied_result) {
-  Eigen::MatrixXd observed_fisher;
+  Eigen::MatrixXd observed_information;
   lslxOptimizer optimizer(reduced_data,
                           reduced_model,
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
   optimizer.update_theta_start();
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   
   optimizer.update_residual_weight();
   optimizer.update_moment_jacobian();
   optimizer.update_loss_gradient();
   optimizer.update_loss_observed_hessian();
-  observed_fisher = 0.5 * optimizer.loss_observed_hessian;
-  return Rcpp::wrap(observed_fisher);
+  observed_information = 0.5 * optimizer.loss_observed_hessian;
+  return Rcpp::wrap(observed_information);
 }
 
 // compute asymptotic covariance of score
@@ -1440,7 +1464,7 @@ Rcpp::NumericMatrix compute_score_acov_cpp(
     Eigen::MatrixXd::Zero(optimizer.n_theta, 
                           optimizer.n_theta);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   optimizer.update_residual_weight();
   optimizer.update_moment_jacobian();
@@ -1472,7 +1496,7 @@ double compute_loss_value_cpp(
                           supplied_result);
   optimizer.set_theta_value(theta_value);
   
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   optimizer.update_loss_value();
   loss_value = optimizer.loss_value;
@@ -1493,7 +1517,7 @@ Rcpp::NumericMatrix compute_loss_gradient_cpp(
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   
   optimizer.update_residual_weight();
@@ -1517,7 +1541,7 @@ Rcpp::NumericMatrix compute_loss_gradient_direct_cpp(
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   optimizer.update_loss_gradient_direct();
   loss_gradient = optimizer.loss_gradient;
@@ -1564,7 +1588,7 @@ Rcpp::NumericMatrix compute_objective_gradient_cpp(
   optimizer.set_theta_value(theta_value);
   optimizer.set_regularizer(Rcpp::as<Rcpp::CharacterVector>(control["penalty_method"]), lambda, delta);
   
-  optimizer.update_coefficient_matrice();
+  optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();
   
   optimizer.update_loss_gradient_direct();

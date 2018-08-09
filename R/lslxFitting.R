@@ -23,6 +23,7 @@ lslxFitting$set("public",
                   private$initialize_reduced_model(model = model)
                   private$initialize_reduced_data(data = data)
                   private$initialize_supplied_result()
+                  private$initialize_grid()
                   private$initialize_fitted_result()
                 })
 
@@ -33,6 +34,23 @@ lslxFitting$set("private",
                          data,
                          control) {
                   self$control <- control
+                  if (length(model$name_factor) == 0) {
+                    if (!(c("y<-y") %in% model$specification$block)) {
+                      self$control$model_class <- "CA" 
+                    } else {
+                      self$control$model_class <- "PA" 
+                    }
+                  } else {
+                    if (!any(c("f<-f", "f<-y", "y<-y", "y<->f", "f<->y") %in% model$specification$block)) {
+                      self$control$model_class <- "FA" 
+                    } else {
+                      if (!any(c("f<-f", "y<->f", "f<->y") %in% model$specification$block)) {
+                        self$control$model_class <- "MIMIC" 
+                      } else {
+                        self$control$model_class <- "SEM" 
+                      }
+                    }
+                  }
                   if (length(data$response) > 0) {
                     self$control$response <- TRUE
                   } else {
@@ -48,46 +66,38 @@ lslxFitting$set("private",
                   } else {
                     self$control$regularizer <- FALSE
                   }
-                  if (self$control$lambda_grid[[1]] == "default") {
-                    self$control$lambda_grid <- 0
-                  } else {
-                    if (self$control$penalty_method == "none") {
-                      self$control$lambda_grid <- 0
-                    } else if (self$control$penalty_method == "lasso") {
-                      if (any(self$control$lambda_grid < 0)) {
-                        stop(
-                          "When argument 'penalty_method' is set as 'lasso', any element in argument 'lambda_grid' cannot be smaller than 0."
-                        )
-                      }
-                    } else if (self$control$penalty_method == "mcp") {
-                      if (any(self$control$lambda_grid < 0)) {
-                        stop(
-                          "When argument 'penalty_method' is set as 'mcp', any element in argument 'lambda_grid' cannot be smaller than 0."
-                        )
-                      }
-                    } else {
-                      
-                    }
+                  if (self$control$penalty_method == "none" & 
+                      any(model$specification$type == "pen")) {
+                    stop(
+                      "When the specified model includes penalized coefficients, 'penalty_method' cannot be 'none'."
+                    )
                   }
-                  if (self$control$delta_grid[[1]] == "default") {
-                    self$control$delta_grid <- Inf
+                  if (self$control$penalty_method == "none") {
+                    self$control$lambda_grid <- Inf
+                  } else if (self$control$penalty_method %in% c("lasso", "mcp")) {
+                    if (self$control$lambda_grid[[1]] == "default") {
+                    } else {
+                      if (any(self$control$lambda_grid < 0)) {
+                        stop(
+                          "When argument 'penalty_method' is set as 'lasso' or 'mcp', any element in argument 'lambda_grid' cannot be smaller than 0."
+                        )
+                      }
+                    }
                   } else {
-                    if (self$control$penalty_method %in% c("none", "lasso")) {
-                      self$control$delta_grid <- Inf
-                    } else if (self$control$penalty_method == "mcp") {
+                  }
+                  if (self$control$penalty_method %in% c("none", "lasso")) {
+                    self$control$delta_grid <- Inf
+                  } else if (self$control$penalty_method == "mcp") {
+                    if (self$control$delta_grid[[1]] == "default") {
+                    } else {
                       if (any(self$control$delta_grid <= 0)) {
                         stop(
                           "When argument 'penalty_method' is set as 'mcp', any element in argument 'delta_grid' must be positive."
                         )
                       }
-                    } else {
-                      
                     }
-                  }
-                  self$control$lambda_grid <-
-                    sort(self$control$lambda_grid, decreasing = TRUE)
-                  self$control$delta_grid <-
-                    sort(self$control$delta_grid, decreasing = TRUE)
+                  } else {
+                  }            
                   if (self$control$algorithm == "default") {
                     if (self$control$regularizer) {
                       self$control$algorithm <- "fisher"
@@ -105,12 +115,46 @@ lslxFitting$set("private",
                   if (self$control$start_method == "default") {
                     self$control$start_method <- "mh"
                   }
+                  if (!is.null(self$control$subset)) {
+                    if (self$control$response) {
+                      if (is.logical(self$control$subset)) {
+                        self$control$subset <- which(self$control$subset)
+                      } 
+                    } else {
+                      stop(
+                        "When only moment data is available, argument 'subset' cannot be specified."
+                      )
+                    }
+                  } else {
+                    if (self$control$response) {
+                      self$control$subset <- 
+                        1:sum(sapply(data$response, FUN = nrow))
+                    } else {
+                      self$control$subset <- 
+                        1:sum(unlist(data$sample_size))
+                    }
+                  }
+                  if (!is.integer(self$control$cv_fold)) {
+                    self$control$cv_fold <- as.integer(self$control$cv_fold)
+                  }
+                  if (self$control$cv_fold > 1L) {
+                    if (self$control$response) {
+                      cv_idx <-
+                        sample(
+                          x = 1:self$control$cv_fold,
+                          size = length(self$control$subset),
+                          replace = TRUE
+                        )
+                      self$control$cv_idx <- cv_idx
+                    }
+                  }
                 })
 
 ## \code{$initialize_reduced_model()} initializes a reduced model. ##
 lslxFitting$set("private",
                 "initialize_reduced_model",
-                function(model) {
+                function(model,
+                         control) {
                   self$reduced_model <-
                     list(
                       n_response = length(model$name_response),
@@ -120,6 +164,8 @@ lslxFitting$set("private",
                         (length(model$name_response) + 3) / 2,
                       n_group = length(model$name_group),
                       n_theta = nrow(model$specification),
+                      eta_is_exogenous = model$name_eta %in% model$name_exogenous,
+                      eta_is_endogenous = model$name_eta %in% model$name_endogenous,
                       theta_name = rownames(model$specification),
                       theta_matrice_idx =
                         ifelse(
@@ -128,7 +174,7 @@ lslxFitting$set("private",
                           ifelse(
                             model$specification$matrice == "beta",
                             2L,
-                            ifelse(model$specification$matrice == "psi",
+                            ifelse(model$specification$matrice == "phi",
                                    3L,
                                    0L)
                           )
@@ -163,7 +209,7 @@ lslxFitting$set("private",
                       theta_is_pen = (model$specification$type == "pen"),
                       theta_is_diag =
                         ifelse(
-                          model$specification$matrice == "psi" &
+                          model$specification$matrice == "phi" &
                             (model$specification$left ==
                                model$specification$right),
                           TRUE,
@@ -198,7 +244,8 @@ lslxFitting$set("private",
 ## \code{$initialize_reduced_data()} initializes a reduced data. ##
 lslxFitting$set("private",
                 "initialize_reduced_data",
-                function(data) {
+                function(data,
+                         control) {
                   self$reduced_data <-
                     list(
                       n_observation = integer(),
@@ -210,6 +257,13 @@ lslxFitting$set("private",
                       saturated_moment_acov = list()
                     )
                   if (self$control$response) {
+                    idc_subset <-
+                      lapply(data$response, 
+                             FUN = function(response_i) {
+                               idc_subset_i <- 
+                                 (row.names(response_i) %in% self$control$subset)
+                               return(idc_subset_i)
+                             })
                     idc_complete <-
                       lapply(
                         X = data$pattern,
@@ -223,11 +277,17 @@ lslxFitting$set("private",
                       )
                     if (self$control$missing_method == "two_stage") {
                       idc_use <-
-                        lapply(
-                          X = data$pattern,
-                          FUN = function(pattern_i) {
-                            return(rowSums(pattern_i) > 0)
-                          }
+                        mapply(
+                          FUN = function(pattern_i,
+                                         idc_subset_i) {
+                            idc_use_i <- 
+                              ((rowSums(pattern_i) > 0) & idc_subset_i)
+                            return(idc_use_i)
+                          },
+                          data$pattern,
+                          idc_subset,
+                          SIMPLIFY = FALSE,
+                          USE.NAMES = TRUE
                         )
                       if (self$control$auxiliary) {
                         response <-
@@ -249,7 +309,8 @@ lslxFitting$set("private",
                             FUN = function(pattern_i,
                                            auxiliary_i,
                                            idc_use_i) {
-                              return(cbind(pattern_i[idc_use_i, , drop = FALSE], !is.na(auxiliary_i[idc_use_i, , drop = FALSE])))
+                              return(cbind(pattern_i[idc_use_i, , drop = FALSE], 
+                                           !is.na(auxiliary_i[idc_use_i, , drop = FALSE])))
                             },
                             data$pattern,
                             data$auxiliary,
@@ -295,38 +356,50 @@ lslxFitting$set("private",
                           USE.NAMES = TRUE
                         )
                     } else if (self$control$missing_method == "listwise_deletion") {
+                      idc_use <-
+                        mapply(
+                          FUN = function(idc_complete_i,
+                                         idc_subset_i) {
+                            idc_use_i <- idc_complete_i & idc_subset_i
+                            return(idc_use_i)
+                          },
+                          idc_complete,
+                          idc_subset,
+                          SIMPLIFY = FALSE,
+                          USE.NAMES = TRUE
+                        )
                       response <-
                         mapply(
                           FUN = function(response_i,
-                                         idc_complete_i) {
-                            return(response_i[idc_complete_i, , drop = FALSE])
+                                         idc_use_i) {
+                            return(response_i[idc_use_i, , drop = FALSE])
                           },
                           data$response,
-                          idc_complete,
+                          idc_use,
                           SIMPLIFY = FALSE,
                           USE.NAMES = TRUE
                         )
                       pattern <-
                         mapply(
                           FUN = function(pattern_i,
-                                         idc_complete_i) {
-                            return(pattern_i[idc_complete_i, , drop = FALSE])
+                                         idc_use_i) {
+                            return(pattern_i[idc_use_i, , drop = FALSE])
                           },
                           data$pattern,
-                          idc_complete,
+                          idc_use,
                           SIMPLIFY = FALSE,
                           USE.NAMES = TRUE
                         )
                       weight <-
                         mapply(
                           FUN = function(weight_i,
-                                         idc_complete_i) {
-                            weight_i <- weight_i[idc_complete_i,]
+                                         idc_use_i) {
+                            weight_i <- weight_i[idc_use_i,]
                             weight_i <- weight_i / sum(weight_i)
                             return(weight_i)
                           },
                           data$weight,
-                          idc_complete,
+                          idc_use,
                           SIMPLIFY = FALSE,
                           USE.NAMES = TRUE
                         )
@@ -336,7 +409,7 @@ lslxFitting$set("private",
                     self$reduced_data$n_observation <-
                       sum(sapply(X = response, FUN = nrow))
                     self$reduced_data$n_complete_observation <-
-                      sum(unlist(idc_complete))
+                      sum(unlist(idc_complete) & unlist(idc_use))
                     self$reduced_data$sample_proportion <-
                       lapply(
                         X = lapply(X = response, FUN = nrow),
@@ -765,7 +838,7 @@ lslxFitting$set("private",
                           beta_start_i
                       }
                     }
-                    idc_psi <-
+                    idc_phi <-
                       (self$reduced_model$theta_matrice_idx == 3 &
                          self$reduced_model$theta_is_free) |
                       (
@@ -776,40 +849,40 @@ lslxFitting$set("private",
                           ) &
                           (self$reduced_model$theta_start != 0)
                       )
-                    idx_psi <-
+                    idx_phi <-
                       strsplit(x = unique(
                         paste0(
-                          self$reduced_model$theta_left_idx[idc_psi],
+                          self$reduced_model$theta_left_idx[idc_phi],
                           ",",
-                          self$reduced_model$theta_right_idx[idc_psi]
+                          self$reduced_model$theta_right_idx[idc_phi]
                         )
                       ),
                       split = ",")
-                    theta_left_idx_psi <-
+                    theta_left_idx_phi <-
                       sapply(
-                        X = idx_psi,
-                        FUN = function(idx_psi_i) {
-                          as.integer(idx_psi_i[1])
+                        X = idx_phi,
+                        FUN = function(idx_phi_i) {
+                          as.integer(idx_phi_i[1])
                         }
                       )
-                    theta_right_idx_psi <-
+                    theta_right_idx_phi <-
                       sapply(
-                        X = idx_psi,
-                        FUN = function(idx_psi_i) {
-                          as.integer(idx_psi_i[2])
+                        X = idx_phi,
+                        FUN = function(idx_phi_i) {
+                          as.integer(idx_phi_i[2])
                         }
                       )
-                    psi_start <-
+                    phi_start <-
                       matrix(0,
                              self$reduced_model$n_eta,
                              self$reduced_model$n_eta)
-                    psi_saturated <-
+                    phi_saturated <-
                       (diag(1, self$reduced_model$n_eta) - beta_start) %*%
                       cov_eta %*% t((diag(1, self$reduced_model$n_eta) - beta_start))
-                    psi_start[cbind(theta_left_idx_psi, theta_right_idx_psi)] <-
-                      psi_saturated[cbind(theta_left_idx_psi, theta_right_idx_psi)]
-                    psi_start[cbind(theta_right_idx_psi, theta_left_idx_psi)] <-
-                      psi_saturated[cbind(theta_right_idx_psi, theta_left_idx_psi)]
+                    phi_start[cbind(theta_left_idx_phi, theta_right_idx_phi)] <-
+                      phi_saturated[cbind(theta_left_idx_phi, theta_right_idx_phi)]
+                    phi_start[cbind(theta_right_idx_phi, theta_left_idx_phi)] <-
+                      phi_saturated[cbind(theta_right_idx_phi, theta_left_idx_phi)]
                     idc_alpha <-
                       (self$reduced_model$theta_matrice_idx == 1 &
                          self$reduced_model$theta_is_free) |
@@ -855,7 +928,7 @@ lslxFitting$set("private",
                       list(
                         alpha_start = alpha_start,
                         beta_start = beta_start,
-                        psi_start = psi_start
+                        phi_start = phi_start
                       )
                     for (i in 1:3) {
                       if (0 %in% unique(self$reduced_model$theta_group_idx)) {
@@ -866,8 +939,9 @@ lslxFitting$set("private",
                         self$supplied_result$fitted_start[idc_i0] <-
                           ifelse(
                             is.na(self$reduced_model$theta_start[idc_i0]),
-                            coefficient_matrice_start[[i]][cbind(self$reduced_model$theta_left_idx[idc_i0],
-                                                                 self$reduced_model$theta_right_idx[idc_i0])],
+                            coefficient_matrice_start[[i]][
+                              cbind(self$reduced_model$theta_left_idx[idc_i0],
+                                    self$reduced_model$theta_right_idx[idc_i0])],
                             self$reduced_model$theta_start[idc_i0]
                           )
                         for (j in setdiff(unique(self$reduced_model$theta_group_idx), 0)) {
@@ -889,28 +963,32 @@ lslxFitting$set("private",
                           self$supplied_result$fitted_start[idc_ij] <-
                             ifelse(
                               is.na(self$reduced_model$theta_start[idc_ij]),
-                              coefficient_matrice_start[[i]][cbind(
-                                self$reduced_model$theta_left_idx[idc_ij],
-                                self$reduced_model$theta_right_idx[idc_ij]
+                              coefficient_matrice_start[[i]][
+                                cbind(self$reduced_model$theta_left_idx[idc_ij],
+                                      self$reduced_model$theta_right_idx[idc_ij]
                               )],
                               self$reduced_model$theta_start[idc_ij]
                             )
                         }
                       }
                     }
+                    self$supplied_result$alpha_start <- alpha_start
+                    self$supplied_result$beta_start <- beta_start
+                    self$supplied_result$phi_start <- phi_start
                   } else if (self$control$start_method == "heuristic") {
                     self$supplied_result$fitted_start <-
                       ifelse(
                         !is.na(self$reduced_model$theta_start),
                         self$reduced_model$theta_start,
-                        ifelse(self$reduced_model$matrice == 2,
-                               1,
-                               ifelse((self$reduced_model$matrice == 3) &
+                        ifelse(self$reduced_model$theta_matrice_idx == 2,
+                               ifelse(self$reduced_model$theta_is_free,
+                                      0.5, 0),
+                               ifelse((self$reduced_model$theta_matrice_idx == 3) &
                                         (
                                           self$reduced_model$theta_left_idx ==
                                             self$reduced_model$theta_right_idx
                                         ),
-                                      .05,
+                                      .1,
                                       0
                                ))
                       )
@@ -923,7 +1001,6 @@ lslxFitting$set("private",
                         )
                     }
                   } else {
-                    
                   }
                   names(self$supplied_result$fitted_start) <-
                     self$reduced_model$theta_name
@@ -961,7 +1038,7 @@ lslxFitting$set("private",
                     n_nonzero_coefficient =
                       self$reduced_model$n_group *
                       (2L * self$reduced_model$n_response),
-                    degree_of_freedom =
+                    degrees_of_freedom =
                       self$reduced_model$n_group *
                       (
                         self$reduced_model$n_moment -
@@ -978,9 +1055,86 @@ lslxFitting$set("private",
                     loss_value = 0,
                     n_nonzero_coefficient = self$reduced_model$n_group *
                       self$reduced_model$n_moment,
-                    degree_of_freedom = 0
+                    degrees_of_freedom = 0
                   )
                 })
+
+## \code{$initialize_grid()} initializes lambda_grid and delta_grid by default. ##
+lslxFitting$set("private",
+                "initialize_grid",
+                function() {
+                  if (any(self$reduced_model$eta_is_exogenous)) {
+                    eta_is_exogenous <- self$reduced_model$eta_is_exogenous
+                  } else {
+                    eta_is_exogenous <- rep(TRUE, self$reduced_model$n_eta)
+                  }
+                  if (any(self$reduced_model$eta_is_endogenous)) {
+                    eta_is_endogenous <- self$reduced_model$eta_is_endogenous
+                  } else {
+                    eta_is_endogenous <- rep(TRUE, self$reduced_model$n_eta)
+                  }
+                  if (self$control$lambda_grid[[1]] == "default") {
+                    if (self$control$start_method == "mh") {
+                      beta_start_inv <- 
+                        solve(diag(self$reduced_model$n_eta) - self$supplied_result$beta_start)
+                      sigma_eta_start <- 
+                        beta_start_inv %*% self$supplied_result$phi_start %*% t(beta_start_inv)
+                      lambda_max <-  
+                        sqrt(quantile(diag(sigma_eta_start)[eta_is_exogenous], 0.6)) / 
+                        quantile(diag(self$supplied_result$phi_start)[eta_is_endogenous] /
+                                   sqrt(diag(sigma_eta_start)[eta_is_endogenous]), 0.4) *
+                        self$control$threshold_value
+                    } else if (self$control$start_method == "heuristic") {
+                      saturated_var <- diag(do.call("+", self$reduced_data$saturated_cov))
+                      lambda_max <- 
+                        1 / quantile((saturated_var * 0.3) / sqrt(saturated_var), 0.3) * 
+                        self$control$threshold_value
+                    } else {
+                    }
+                    lambda_min <- (log(self$reduced_data$n_observation)/ self$reduced_data$n_observation)
+                    self$control$lambda_grid <- 
+                      exp(seq(log(lambda_max), log(lambda_min), 
+                              length.out = self$control$lambda_length))
+                  } 
+                  if (self$control$delta_grid[[1]] == "default") {
+                    if (self$control$start_method == "mh") {
+                      beta_start_inv <- 
+                        solve(diag(self$reduced_model$n_eta) - self$supplied_result$beta_start)
+                      sigma_eta_start <- 
+                        beta_start_inv %*% self$supplied_result$phi_start %*% t(beta_start_inv)
+                      delta_min <- 
+                        2 * max(diag(sigma_eta_start)[eta_is_endogenous]) / 
+                        min(diag(sigma_eta_start)[eta_is_exogenous])
+                    } else if (self$control$start_method == "heuristic") {
+                      saturated_var <- diag(do.call("+", self$reduced_data$saturated_cov))
+                      delta_min <- 2 * max(saturated_var, 1) / 1
+                    } else {
+                    }
+                    if (self$control$delta_length == 1) {
+                      self$control$delta_grid <- Inf
+                    } else {
+                      self$control$delta_grid <- 
+                        c(delta_min * (1:(self$control$delta_length - 1)), Inf) 
+                    }
+                  }
+                  if (self$control$lambda_direction == "default") {
+                    if (min(self$control$lambda_grid) == 0) {
+                      self$control$lambda_direction <- "decrease"
+                    } else {
+                      self$control$lambda_direction <- "increase"
+                    }
+                  }
+                  if (self$control$lambda_direction == "decrease") {
+                    self$control$lambda_grid <-
+                      sort(self$control$lambda_grid, decreasing = TRUE)
+                  } else if (self$control$lambda_direction == "increase") {
+                    self$control$lambda_grid <-
+                      sort(self$control$lambda_grid, decreasing = FALSE)
+                  } else {}
+                  self$control$delta_grid <-
+                    sort(self$control$delta_grid, decreasing = TRUE)
+                })
+
 
 ## \code{$initialize_fitted_result()} initializes a fitted result. ##
 lslxFitting$set("private",
@@ -999,7 +1153,13 @@ lslxFitting$set("private",
                       length = length(self$control$lambda_grid) *
                         length(self$control$delta_grid)
                     )
-                  self$fitted_result$fit_indice <-
+                  self$fitted_result$fit_index <-
+                    vector(
+                      mode = "list",
+                      length = length(self$control$lambda_grid) *
+                        length(self$control$delta_grid)
+                    )
+                  self$fitted_result$cv_error <-
                     vector(
                       mode = "list",
                       length = length(self$control$lambda_grid) *
