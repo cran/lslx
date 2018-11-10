@@ -22,6 +22,7 @@ lslxFitting$set("public",
                                              control = control)
                   private$initialize_reduced_model(model = model)
                   private$initialize_reduced_data(data = data)
+                  private$initialize_weight_matrix()
                   private$initialize_supplied_result()
                   private$initialize_grid()
                   private$initialize_fitted_result()
@@ -34,20 +35,160 @@ lslxFitting$set("private",
                          data,
                          control) {
                   self$control <- control
+                  if (!(self$control$penalty_method %in% c("none", "lasso", "mcp"))) {
+                    stop("Argument 'penalty_method' can be only either 'none', 'lasso', or 'mcp'.")
+                  }
+                  if (!is.numeric(self$control$lambda_grid)) {
+                    if (!is.character(self$control$lambda_grid)) {
+                      stop("Argument 'lambda_grid' can be only a numeric vector or set as 'default'.")
+                    } else if (is.character(self$control$lambda_grid) &
+                               (length(self$control$lambda_grid) != 1)) {
+                      stop("Argument 'lambda_grid' can be only a numeric vector or set as 'default'.")
+                    } else if (is.character(self$control$lambda_grid) &
+                               (length(self$control$lambda_grid) == 1)) {
+                      if (self$control$lambda_grid != "default") {
+                        stop("Argument 'lambda_grid' can be only a numeric vector or set as 'default'.")
+                      }
+                    }
+                  }
+                  if (!is.numeric(self$control$delta_grid)) {
+                    if (!is.character(self$control$delta_grid)) {
+                      stop("Argument 'delta_grid' can be only a numeric vector or set as 'default'.")
+                    } else if (is.character(self$control$delta_grid) &
+                               (length(self$control$delta_grid) != 1)) {
+                      stop("Argument 'delta_grid' can be only a numeric vector or set as 'default'.")
+                    } else if (is.character(self$control$delta_grid) &
+                               (length(self$control$delta_grid) == 1)) {
+                      if (self$control$delta_grid != "default") {
+                        stop("Argument 'delta_grid' can be only a numeric vector or set as 'default'.")
+                      }
+                    }
+                  }
+                  if (!(self$control$loss %in% c("default", "ml", "uls", "dwls", "wls"))) {
+                    stop("Argument 'default' can be only 'default', 'ml', 'uls', 'dwls', or 'wls'.")
+                  }
+                  if (!(self$control$algorithm %in% c("default", "gd", "bfgs", "fisher"))) {
+                    stop("Argument 'algorithm' can be only 'default', 'gd', 'bfgs', or 'fisher'.")
+                  }
+                  if (!(self$control$missing_method %in% c("default", "two_stage", "listwise_deletion"))) {
+                    stop(
+                      "Argument 'start_method' can be only 'default', 'two_stage', or 'listwise_deletion'."
+                    )
+                  }
+                  if (!(self$control$start_method %in% c("default", "none", "mh", "heuristic"))) {
+                    stop("Argument 'start_method' can be only 'default', 'none', 'mh', or 'heuristic'.")
+                  }
+                  if (!(self$control$lambda_direction %in% c("default", "manual", "decrease", "increase"))) {
+                    stop("Argument 'lambda_direction' can be only 'default', 'manual', 'decrease', or 'increase'.")
+                  }
+                  
+                  if (!is.null(self$control$subset)) {
+                    if (!(is.integer(self$control$subset) | is.logical(self$control$subset))) {
+                      stop("Argument 'subset' must be a integer or logical vector.")
+                    }
+                  }
+                  if (!(is.numeric(self$control$lambda_length) & (self$control$lambda_length > 0))) {
+                    stop("Argument 'lambda_length' must be a positive integer.")
+                  }
+                  if (!(is.numeric(self$control$delta_length) & (self$control$delta_length > 0))) {
+                    stop("Argument 'delta_length' must be a positive integer.")
+                  }
+                  if (!(is.numeric(self$control$threshold_value) & (self$control$threshold_value > 0))) {
+                    stop("Argument 'threshold_value' must be a positive value.")
+                  }
+                  if (!(is.numeric(self$control$cv_fold) & (self$control$cv_fold > 0))) {
+                    stop("Argument 'cv_fold' must be a positive integer.")
+                  }
+                  if (!(is.numeric(self$control$iter_out_max) & (length(self$control$iter_out_max) == 1))) {
+                    stop("Argument 'iter_out_max' must be a numeric vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$iter_in_max) & (length(self$control$iter_in_max) == 1))) {
+                    stop("Argument 'iter_in_max' must be a numeric vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$iter_armijo_max) & (length(self$control$iter_armijo_max) == 1))) {
+                    stop("Argument 'iter_armijo_max' must be a numeric vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$tol_out) & (length(self$control$tol_out) == 1))) {
+                    stop("Argument 'tol_out' must be a numeric vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$tol_in) & (length(self$control$tol_in) == 1))) {
+                    stop("Argument 'tol_in' must be a numeric vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$step_size) & (length(self$control$step_size) == 1))) {
+                    stop("Argument 'step_size' must be a numeric vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$armijo) & (length(self$control$armijo) == 1))) {
+                    stop("Argument 'armijo' must be a numeric vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$ridge_cov) & (length(self$control$ridge_cov) == 1))) {
+                    stop("Argument 'ridge_cov' must be a numeric vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$ridge_hessian) & (length(self$control$ridge_hessian) == 1))) {
+                    stop("Argument 'ridge_hessian' must be a numeric vector with length one.")
+                  }
+                  if (!(is.logical(self$control$warm_start) & (length(self$control$warm_start) == 1))) {
+                    stop("Argument 'warm_start' must be a logical vector with length one.")
+                  }
+                  if (!(is.logical(self$control$positive_variance) & (length(self$control$positive_variance) == 1))) {
+                    stop("Argument 'positive_variance' must be a logical vector with length one.")
+                  }
+                  if (!(is.numeric(self$control$minimum_variance) & (length(self$control$minimum_variance) == 1))) {
+                    stop("Argument 'minimum_variance' must be a numeric vector with length one.")
+                  }
+                  if (!is.null(self$control$weight_matrix)) {
+                    if (!is.list(self$control$weight_matrix) & !is.matrix(self$control$weight_matrix)) {
+                      stop(
+                        "Argument 'weight_matrix' must be a 'matrix' (for single group analysis)",
+                        " or a 'list' of 'matrix' (for multiple group analysis)."
+                      )
+                    }
+                    if (is.matrix(self$control$weight_matrix)) {
+                      self$control$weight_matrix <- list(self$control$weight_matrix)
+                    }
+                    if (length(self$control$weight_matrix) != length(model$name_group)) {
+                      stop(
+                        "The length of argument 'weight_matrix' doesn't match the number of groups.",
+                        "\n  The length of 'weight_matrix' is ",
+                        length(self$control$weight_matrix),
+                        ".",
+                        "\n  The number of groups is ",
+                        length(model$name_group),
+                        "."
+                      )
+                    }
+                    if (length(dim(self$control$weight_matrix[[1]])) != 2 | 
+                        !is.numeric(self$control$weight_matrix[[1]])) {
+                      stop("Some element in 'weight_matrix' is not a matrix.")
+                    }
+                    n_moment <- length(model$name_response) * (length(model$name_response) + 3) / 2
+                    if (!all(dim(self$control$weight_matrix[[1]]) == c(n_moment, n_moment))) {
+                      stop("The dimension of some element in 'weight_matrix' is not correct.",
+                           "\n  The correct dimension is ", n_moment, " by ", n_moment, ".")
+                    }
+                  }
+
                   if (length(model$name_factor) == 0) {
                     if (!(c("y<-y") %in% model$specification$block)) {
-                      self$control$model_class <- "CA" 
+                      self$control$model_class <- "ca" 
                     } else {
-                      self$control$model_class <- "PA" 
+                      self$control$model_class <- "pa" 
                     }
                   } else {
                     if (!any(c("f<-f", "f<-y", "y<-y", "y<->f", "f<->y") %in% model$specification$block)) {
-                      self$control$model_class <- "FA" 
+                      if ("y<-f" %in% model$specification$block) {
+                        if (all(model$specification$type[model$specification$block == "y<-f"] == "pen")) {
+                          self$control$model_class <- "efa" 
+                        } else {
+                          self$control$model_class <- "fa" 
+                        }
+                      } else {
+                        self$control$model_class <- "sem" 
+                      }
                     } else {
                       if (!any(c("f<-f", "y<->f", "f<->y") %in% model$specification$block)) {
-                        self$control$model_class <- "MIMIC" 
+                        self$control$model_class <- "mimic" 
                       } else {
-                        self$control$model_class <- "SEM" 
+                        self$control$model_class <- "sem" 
                       }
                     }
                   }
@@ -83,8 +224,7 @@ lslxFitting$set("private",
                         )
                       }
                     }
-                  } else {
-                  }
+                  } else {}
                   if (self$control$penalty_method %in% c("none", "lasso")) {
                     self$control$delta_grid <- Inf
                   } else if (self$control$penalty_method == "mcp") {
@@ -97,13 +237,17 @@ lslxFitting$set("private",
                       }
                     }
                   } else {
-                  }            
-                  if (self$control$algorithm == "default") {
-                    if (self$control$regularizer) {
-                      self$control$algorithm <- "fisher"
-                    } else {
-                      self$control$algorithm <- "bfgs"
+                  }
+                  if (self$control$loss == "default") {
+                    self$control$loss <- "ml"
+                  }
+                  if (!is.null(self$control$weight_matrix)) {
+                    if (self$control$loss != "wls") {
+                      stop("When 'weight_matrix' is specified, 'loss' must be set as 'wls'.")
                     }
+                  }
+                  if (self$control$algorithm == "default") {
+                    self$control$algorithm <- "fisher"
                   }
                   if (self$control$missing_method == "default") {
                     if (self$control$response) {
@@ -167,32 +311,32 @@ lslxFitting$set("private",
                       eta_is_exogenous = model$name_eta %in% model$name_exogenous,
                       eta_is_endogenous = model$name_eta %in% model$name_endogenous,
                       theta_name = rownames(model$specification),
-                      theta_matrice_idx =
+                      theta_matrix_idx =
                         ifelse(
-                          model$specification$matrice == "alpha",
-                          1L,
+                          model$specification$matrix == "gamma",
+                          0L,
                           ifelse(
-                            model$specification$matrice == "beta",
-                            2L,
-                            ifelse(model$specification$matrice == "phi",
-                                   3L,
-                                   0L)
+                            model$specification$matrix == "alpha",
+                            1L,
+                            ifelse(model$specification$matrix == "beta",
+                                   2L,
+                                   3L)
                           )
                         ),
                       theta_left_idx = match(model$specification$left, model$name_eta),
                       theta_right_idx = ifelse(
-                        model$specification$matrice == "alpha",
-                        1L,
+                        model$specification$matrix == "gamma",
+                        NA_integer_,
                         ifelse(
-                          model$specification$matrice == "tau",
-                          NA_integer_,
+                          model$specification$matrix == "alpha",
+                          1L,
                           match(model$specification$right, model$name_eta)
                         )
                       ),
                       theta_flat_idx = NA_integer_,
                       theta_group_idx = ifelse(
                         rep(
-                          is.na(model$reference_group),
+                          is.null(model$reference_group),
                           length(model$specification$group)
                         ),
                         match(model$specification$group,
@@ -209,7 +353,7 @@ lslxFitting$set("private",
                       theta_is_pen = (model$specification$type == "pen"),
                       theta_is_diag =
                         ifelse(
-                          model$specification$matrice == "phi" &
+                          model$specification$matrix == "phi" &
                             (model$specification$left ==
                                model$specification$right),
                           TRUE,
@@ -219,15 +363,15 @@ lslxFitting$set("private",
                     )
                   self$reduced_model$theta_flat_idx <-
                     ifelse(
-                      self$reduced_model$theta_matrice_idx == 1,
+                      self$reduced_model$theta_matrix_idx == 1,
                       self$reduced_model$theta_left_idx,
                       ifelse(
-                        self$reduced_model$theta_matrice_idx == 2,
+                        self$reduced_model$theta_matrix_idx == 2,
                         self$reduced_model$n_eta *
                           (self$reduced_model$theta_right_idx - 1L) +
                           self$reduced_model$theta_left_idx,
                         ifelse(
-                          self$reduced_model$theta_matrice_idx == 3,
+                          self$reduced_model$theta_matrix_idx == 3,
                           as.integer(
                             self$reduced_model$n_eta *
                               (self$reduced_model$theta_right_idx - 1L) +
@@ -579,22 +723,24 @@ lslxFitting$set("private",
                           return(sample_mean_i)
                         }
                       )
-                    self$reduced_data$saturated_moment_acov <-
-                      lapply(
-                        X = self$reduced_data$saturated_cov,
-                        FUN = function(saturated_cov_i) {
-                          
-                        }
+                    self$reduced_data$saturated_moment_acov <- data$sample_moment_acov
+                    if (length(self$reduced_data$saturated_moment_acov) > 0) {
+                      self$reduced_data$saturated_moment_acov <-
+                        lapply(
+                          X = self$reduced_data$saturated_cov,
+                          FUN = function(saturated_cov_i) {
+                            
+                          }
+                        )
+                      compute_saturated_moment_acov_moment_cpp(
+                        n_observation = self$reduced_data$n_observation,
+                        sample_proportion = self$reduced_data$sample_proportion,
+                        saturated_cov = self$reduced_data$saturated_cov,
+                        saturated_moment_acov = self$reduced_data$saturated_moment_acov
                       )
-                    compute_saturated_moment_acov_moment_cpp(
-                      n_observation = self$reduced_data$n_observation,
-                      sample_proportion = self$reduced_data$sample_proportion,
-                      saturated_cov = self$reduced_data$saturated_cov,
-                      saturated_moment_acov = self$reduced_data$saturated_moment_acov
-                    )
+                    }
                     self$reduced_data$n_missing_pattern <- 1
                   }
-                  
                   if (self$control$auxiliary) {
                     y_name <-
                       c(colnames(data$response[[1]]), colnames(data$auxiliary[[1]]))
@@ -678,8 +824,49 @@ lslxFitting$set("private",
                                                          drop = FALSE])
                         }
                       )
-                  } else {
-                    
+                  } else {}
+                })
+
+
+## \code{$initialize_weight_matrix()} initializes weight matrix. ##
+lslxFitting$set("private",
+                "initialize_weight_matrix",
+                function() {
+                  if (self$control$loss %in% c("uls", "dwls", "wls")) {
+                    if (is.null(self$control$weight_matrix)) {
+                      self$control$weight_matrix <-
+                        mapply(
+                          FUN = function(saturated_moment_acov_i,
+                                         sample_proportion_i) {
+                            if (self$control$loss == "uls") {
+                              weight_matrix_i <- 
+                                sample_proportion_i * diag(dim(saturated_moment_acov_i)[1])
+                            } else if (self$control$loss == "dwls") {
+                              weight_matrix_i <-
+                                diag(1 / diag(saturated_moment_acov_i)) / self$reduced_data$n_observation
+                            } else if (self$control$loss == "wls") {
+                              weight_matrix_i <- 
+                                solve(saturated_moment_acov_i) / self$reduced_data$n_observation
+                            } else {}
+                            return(weight_matrix_i)
+                          },
+                          self$reduced_data$saturated_moment_acov,
+                          self$reduced_data$sample_proportion,
+                          SIMPLIFY = FALSE,
+                          USE.NAMES = TRUE
+                        )
+                    } else {}
+                    self$control$weight_matrix <-
+                      lapply(
+                        X = self$control$weight_matrix,
+                        FUN = function(weight_matrix_i) {
+                          rownames(weight_matrix_i) <-
+                            rownames(self$reduced_data$saturated_moment_acov[[1]])
+                          colnames(weight_matrix_i) <-
+                            colnames(self$reduced_data$saturated_moment_acov[[1]])
+                          return(weight_matrix_i)
+                        }
+                      )
                   }
                 })
 
@@ -726,27 +913,33 @@ lslxFitting$set("private",
                           USE.NAMES = TRUE
                         )
                       )
-                    idc_beta <-
-                      (self$reduced_model$theta_matrice_idx == 2 &
-                         self$reduced_model$theta_is_free) |
-                      (
-                        self$reduced_model$theta_matrice_idx == 2 &
-                          (
-                            !self$reduced_model$theta_is_free &
-                              !self$reduced_model$theta_is_pen
-                          ) &
-                          (self$reduced_model$theta_start != 0)
-                      ) |
-                      (
-                        self$reduced_model$theta_matrice_idx == 2 &
-                          self$reduced_model$theta_is_pen &
-                          !(
-                            self$reduced_model$theta_left_idx <=
-                              self$reduced_model$n_response &
-                              self$reduced_model$theta_right_idx >
-                              self$reduced_model$n_response
-                          )
-                      )
+                    if (self$control$model_class == "efa" ) {
+                      idc_beta <-
+                        (self$reduced_model$theta_matrix_idx == 2 &
+                           self$reduced_model$theta_is_pen)
+                    } else {
+                      idc_beta <-
+                        (self$reduced_model$theta_matrix_idx == 2 &
+                           self$reduced_model$theta_is_free) |
+                        (
+                          self$reduced_model$theta_matrix_idx == 2 &
+                            (
+                              !self$reduced_model$theta_is_free &
+                                !self$reduced_model$theta_is_pen
+                            ) &
+                            (self$reduced_model$theta_start != 0)
+                        ) |
+                        (
+                          self$reduced_model$theta_matrix_idx == 2 &
+                            self$reduced_model$theta_is_pen &
+                            !(
+                              self$reduced_model$theta_left_idx <=
+                                self$reduced_model$n_response &
+                                self$reduced_model$theta_right_idx >
+                                self$reduced_model$n_response
+                            )
+                        )
+                    }
                     idx_beta <-
                       strsplit(x = unique(
                         paste0(
@@ -775,36 +968,54 @@ lslxFitting$set("private",
                         matrix(0,
                                self$reduced_model$n_eta,
                                self$reduced_model$n_eta)
+                      cor_pool <- cov2cor(saturated_cov_pool)
                       cov_eta[1:self$reduced_model$n_response,
                               1:self$reduced_model$n_response] <-
-                        cov2cor(saturated_cov_pool)
-                      for (i in (self$reduced_model$n_response + 1):(self$reduced_model$n_eta)) {
-                        theta_left_idx_beta_i <-
-                          theta_left_idx_beta[theta_right_idx_beta == i &
-                                                theta_left_idx_beta <= self$reduced_model$n_response]
-                        cov_sum_i <-
-                          sum(cov_eta[theta_left_idx_beta_i,
-                                      theta_left_idx_beta_i])
-                        for (j in seq_len(i)) {
-                          if (j <= self$reduced_model$n_response) {
-                            cov_eta_ij <-
-                              sum(cov_eta[j, theta_left_idx_beta_i]) / sqrt(abs(cov_sum_i))
-                            cov_eta[i, j] <- cov_eta_ij
-                            cov_eta[j, i] <- cov_eta_ij
-                          } else if (j < i) {
-                            theta_left_idx_beta_j <-
-                              theta_left_idx_beta[theta_right_idx_beta == j &
-                                                    theta_left_idx_beta <= self$reduced_model$n_response]
-                            cov_sum_j <-
-                              sum(cov_eta[theta_left_idx_beta_j,
-                                          theta_left_idx_beta_j])
-                            cov_eta_ij <-
-                              sum(cov_eta[theta_left_idx_beta_j, theta_left_idx_beta_i]) /
-                              sqrt(abs(cov_sum_i) * abs(cov_sum_j))
-                            cov_eta[i, j] <- cov_eta_ij
-                            cov_eta[j, i] <- cov_eta_ij
-                          } else {
-                            cov_eta[j, i] <- 1
+                        cor_pool
+                      if (self$control$model_class == "efa") {
+                        cor_pool_eigen <- eigen(cor_pool)
+                        cov_eta_yf <- 
+                          cor_pool_eigen$vectors[, 1:self$reduced_model$n_factor, drop = FALSE] %*%
+                          diag(sqrt(cor_pool_eigen$values[1:self$reduced_model$n_factor]))
+                        cov_eta_yf <- promax(cov_eta_yf, m = 4)$loadings[]
+                        cov_eta[1:self$reduced_model$n_response, 
+                                   (self$reduced_model$n_response + 1):self$reduced_model$n_eta] <-
+                          cov_eta_yf
+                        cov_eta[(self$reduced_model$n_response + 1):self$reduced_model$n_eta,
+                                1:self$reduced_model$n_response] <-
+                          t(cov_eta_yf)
+                        cov_eta[(self$reduced_model$n_response + 1):self$reduced_model$n_eta,
+                                (self$reduced_model$n_response + 1):self$reduced_model$n_eta] <-
+                          diag(1, self$reduced_model$n_factor)
+                      } else {
+                        for (i in (self$reduced_model$n_response + 1):(self$reduced_model$n_eta)) {
+                          theta_left_idx_beta_i <-
+                            theta_left_idx_beta[theta_right_idx_beta == i &
+                                                  theta_left_idx_beta <= self$reduced_model$n_response]
+                          cov_sum_i <-
+                            sum(cov_eta[theta_left_idx_beta_i,
+                                        theta_left_idx_beta_i])
+                          for (j in seq_len(i)) {
+                            if (j <= self$reduced_model$n_response) {
+                              cov_eta_ij <-
+                                sum(cov_eta[j, theta_left_idx_beta_i]) / sqrt(abs(cov_sum_i))
+                              cov_eta[i, j] <- cov_eta_ij
+                              cov_eta[j, i] <- cov_eta_ij
+                            } else if (j < i) {
+                              theta_left_idx_beta_j <-
+                                theta_left_idx_beta[theta_right_idx_beta == j &
+                                                      theta_left_idx_beta <= self$reduced_model$n_response]
+                              cov_sum_j <-
+                                sum(cov_eta[theta_left_idx_beta_j,
+                                            theta_left_idx_beta_j])
+                              cov_eta_ij <-
+                                sum(cov_eta[theta_left_idx_beta_j, theta_left_idx_beta_i]) /
+                                sqrt(abs(cov_sum_i) * abs(cov_sum_j))
+                              cov_eta[i, j] <- cov_eta_ij
+                              cov_eta[j, i] <- cov_eta_ij
+                            } else {
+                              cov_eta[j, i] <- 1
+                            }
                           }
                         }
                       }
@@ -825,6 +1036,7 @@ lslxFitting$set("private",
                       matrix(0,
                              self$reduced_model$n_eta,
                              self$reduced_model$n_eta)
+                    
                     for (i in seq_len(self$reduced_model$n_eta)) {
                       theta_right_idx_beta_i <-
                         theta_right_idx_beta[theta_left_idx_beta == i]
@@ -839,10 +1051,10 @@ lslxFitting$set("private",
                       }
                     }
                     idc_phi <-
-                      (self$reduced_model$theta_matrice_idx == 3 &
+                      (self$reduced_model$theta_matrix_idx == 3 &
                          self$reduced_model$theta_is_free) |
                       (
-                        self$reduced_model$theta_matrice_idx == 3 &
+                        self$reduced_model$theta_matrix_idx == 3 &
                           (
                             !self$reduced_model$theta_is_free &
                               !self$reduced_model$theta_is_pen
@@ -884,10 +1096,10 @@ lslxFitting$set("private",
                     phi_start[cbind(theta_right_idx_phi, theta_left_idx_phi)] <-
                       phi_saturated[cbind(theta_right_idx_phi, theta_left_idx_phi)]
                     idc_alpha <-
-                      (self$reduced_model$theta_matrice_idx == 1 &
+                      (self$reduced_model$theta_matrix_idx == 1 &
                          self$reduced_model$theta_is_free) |
                       (
-                        self$reduced_model$theta_matrice_idx == 1 &
+                        self$reduced_model$theta_matrix_idx == 1 &
                           (
                             !self$reduced_model$theta_is_free &
                               !self$reduced_model$theta_is_pen
@@ -924,7 +1136,7 @@ lslxFitting$set("private",
                     alpha_start[theta_left_idx_alpha, 1] <-
                       alpha_saturated[theta_left_idx_alpha, 1]
                     
-                    coefficient_matrice_start <-
+                    coefficient_matrix_start <-
                       list(
                         alpha_start = alpha_start,
                         beta_start = beta_start,
@@ -933,20 +1145,20 @@ lslxFitting$set("private",
                     for (i in 1:3) {
                       if (0 %in% unique(self$reduced_model$theta_group_idx)) {
                         idc_i0 <-
-                          (self$reduced_model$theta_matrice_idx == i) &
+                          (self$reduced_model$theta_matrix_idx == i) &
                           (self$reduced_model$theta_group_idx == 0)
                         
                         self$supplied_result$fitted_start[idc_i0] <-
                           ifelse(
                             is.na(self$reduced_model$theta_start[idc_i0]),
-                            coefficient_matrice_start[[i]][
+                            coefficient_matrix_start[[i]][
                               cbind(self$reduced_model$theta_left_idx[idc_i0],
                                     self$reduced_model$theta_right_idx[idc_i0])],
                             self$reduced_model$theta_start[idc_i0]
                           )
                         for (j in setdiff(unique(self$reduced_model$theta_group_idx), 0)) {
                           idc_ij <-
-                            (self$reduced_model$theta_matrice_idx == i) &
+                            (self$reduced_model$theta_matrix_idx == i) &
                             (self$reduced_model$theta_group_idx == j)
                           self$supplied_result$fitted_start[idc_ij] <-
                             ifelse(
@@ -958,12 +1170,12 @@ lslxFitting$set("private",
                       } else {
                         for (j in seq_len(self$reduced_model$n_group)) {
                           idc_ij <-
-                            (self$reduced_model$theta_matrice_idx == i) &
+                            (self$reduced_model$theta_matrix_idx == i) &
                             (self$reduced_model$theta_group_idx == j)
                           self$supplied_result$fitted_start[idc_ij] <-
                             ifelse(
                               is.na(self$reduced_model$theta_start[idc_ij]),
-                              coefficient_matrice_start[[i]][
+                              coefficient_matrix_start[[i]][
                                 cbind(self$reduced_model$theta_left_idx[idc_ij],
                                       self$reduced_model$theta_right_idx[idc_ij]
                               )],
@@ -980,10 +1192,10 @@ lslxFitting$set("private",
                       ifelse(
                         !is.na(self$reduced_model$theta_start),
                         self$reduced_model$theta_start,
-                        ifelse(self$reduced_model$theta_matrice_idx == 2,
+                        ifelse(self$reduced_model$theta_matrix_idx == 2,
                                ifelse(self$reduced_model$theta_is_free,
                                       0.5, 0),
-                               ifelse((self$reduced_model$theta_matrice_idx == 3) &
+                               ifelse((self$reduced_model$theta_matrix_idx == 3) &
                                         (
                                           self$reduced_model$theta_left_idx ==
                                             self$reduced_model$theta_right_idx
@@ -1001,6 +1213,7 @@ lslxFitting$set("private",
                         )
                     }
                   } else {
+                    self$supplied_result$fitted_start <- self$reduced_model$theta_start
                   }
                   names(self$supplied_result$fitted_start) <-
                     self$reduced_model$theta_name
@@ -1012,29 +1225,51 @@ lslxFitting$set("private",
                 function() {
                   self$supplied_result$baseline_model <- c(
                     loss_value =
-                      sum(
-                        mapply(
-                          FUN = function(saturated_mean_i,
-                                         saturated_cov_i,
-                                         sample_proportion_i) {
-                            baseline_loss_value_i <-
-                              sample_proportion_i *
-                              (sum(diag(saturated_cov_i %*%
-                                          diag(
-                                            1 / diag(saturated_cov_i)
-                                          ))) -
-                                 log(det(saturated_cov_i %*% diag(
-                                   1 / diag(saturated_cov_i)
-                                 ))) -
-                                 self$reduced_model$n_response)
-                            return(baseline_loss_value_i)
-                          },
-                          self$reduced_data$saturated_mean,
-                          self$reduced_data$saturated_cov,
-                          self$reduced_data$sample_proportion,
-                          SIMPLIFY = TRUE
-                        )
-                      ),
+                      ifelse(self$control$loss == "ml",
+                             sum(
+                               mapply(
+                                 FUN = function(saturated_mean_i,
+                                                saturated_cov_i,
+                                                sample_proportion_i) {
+                                   baseline_loss_value_i <-
+                                     sample_proportion_i *
+                                     (sum(diag(saturated_cov_i %*%
+                                                 diag(
+                                                   1 / diag(saturated_cov_i)
+                                                 ))) -
+                                        log(det(saturated_cov_i %*% diag(
+                                          1 / diag(saturated_cov_i)
+                                        ))) -
+                                        self$reduced_model$n_response)
+                                   return(baseline_loss_value_i)
+                                 },
+                                 self$reduced_data$saturated_mean,
+                                 self$reduced_data$saturated_cov,
+                                 self$reduced_data$sample_proportion,
+                                 SIMPLIFY = TRUE
+                               )
+                             ),
+                             sum(
+                               mapply(
+                                 FUN = function(saturated_mean_i,
+                                                saturated_cov_i,
+                                                weight_matrix_i) {
+                                   model_residual_i <-
+                                     as.matrix(c(saturated_mean_i - saturated_mean_i,
+                                                 diag(diag(saturated_cov_i))[
+                                                   lower.tri(saturated_cov_i, diag = TRUE)] - 
+                                                   saturated_cov_i[
+                                                     lower.tri(saturated_cov_i, diag = TRUE)]))
+                                   baseline_loss_value_i <-
+                                     t(model_residual_i) %*% weight_matrix_i %*% model_residual_i
+                                   return(baseline_loss_value_i)
+                                 },
+                                 self$reduced_data$saturated_mean,
+                                 self$reduced_data$saturated_cov,
+                                 self$control$weight_matrix,
+                                 SIMPLIFY = TRUE)
+                               )
+                             ),
                     n_nonzero_coefficient =
                       self$reduced_model$n_group *
                       (2L * self$reduced_model$n_response),
@@ -1058,6 +1293,7 @@ lslxFitting$set("private",
                     degrees_of_freedom = 0
                   )
                 })
+
 
 ## \code{$initialize_grid()} initializes lambda_grid and delta_grid by default. ##
 lslxFitting$set("private",

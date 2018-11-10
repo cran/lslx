@@ -185,11 +185,11 @@ lslx$set("public",
 lslx$set("public",
          "test_coefficient",
          function(selector,
-                  lambda = lambda,
-                  delta = delta,
+                  lambda,
+                  delta,
                   standard_error = "default",
                   debias = "default",
-                  post_inference = "default",
+                  inference = "default",
                   alpha_level = .05,
                   include_faulty = FALSE) {
            if (!(
@@ -200,10 +200,10 @@ lslx$set("public",
              )
            }
            if (!(
-             post_inference %in% c("default", "none", "polyhedral", "scheffe")
+             inference %in% c("default", "none", "polyhedral", "scheffe")
            )) {
              stop(
-               "Argument 'post_inference' can be only either 'default', 'none', 'polyhedral', or 'scheffe'."
+               "Argument 'inference' can be only either 'default', 'none', 'polyhedral', or 'scheffe'."
              )
            }
            if (!(
@@ -220,18 +220,18 @@ lslx$set("public",
                standard_error <- "observed_information"
              }
            }
-           if (post_inference == "default") {
-             post_inference <- "none"
+           if (inference == "default") {
+             inference <- "none"
              if (debias == "default") {
                debias <- "none"
              }
-           } else if (post_inference == "polyhedral") {
+           } else if (inference == "polyhedral") {
              if (debias == "default") {
                debias <- "one_step"
              }
              if (debias == "none") {
                stop(
-                 "'debias' cannot be 'none' under 'post_inference' == 'polyhedral'."
+                 "'debias' cannot be 'none' under 'inference' == 'polyhedral'."
                )
              }
            } else {
@@ -270,7 +270,7 @@ lslx$set("public",
              coefficient_test$estimate / coefficient_test$standard_error
            attr(coefficient_test, "standard_error") <-
              standard_error
-           if (post_inference == "none") {
+           if (inference == "none") {
              coefficient_test$p_value <-
                pnorm(-abs(coefficient_test$z_value))
              coefficient_test$lower <-
@@ -290,7 +290,7 @@ lslx$set("public",
                )
              }
              
-             if (post_inference == "polyhedral") {
+             if (inference == "polyhedral") {
                a_ph <- - diag(sign(coefficient))
                b_ph <-
                  matrix((sign(coefficient) * (coefficient - debiased_coefficient)))
@@ -336,15 +336,22 @@ lslx$set("public",
                         FUN = function(tnorm_inference_i) {
                           getElement(tnorm_inference_i, "upper")
                         })
-             }  else if (post_inference == "scheffe") {
+             }  else if (inference == "scheffe") {
                df_scheffe <- sum(private$fitting$reduced_model$theta_is_pen)
                c_scheffe <- sqrt(qchisq(1 - alpha_level, df = df_scheffe))
                coefficient_test$p_value <-
-                 1 - pchisq((coefficient_test$z_value)^2, df = df_scheffe)
+                 ifelse(private$fitting$reduced_model$theta_is_pen,
+                        1 - pchisq((coefficient_test$z_value)^2, df = df_scheffe),
+                        pnorm(-abs(coefficient_test$z_value)))
                coefficient_test$lower <-
-                 coefficient_test$estimate - c_scheffe * coefficient_test$standard_error
+                 ifelse(private$fitting$reduced_model$theta_is_pen,
+                        coefficient_test$estimate - c_scheffe * coefficient_test$standard_error,
+                        coefficient_test$estimate + qnorm(alpha_level / 2) * coefficient_test$standard_error)
+                 
                coefficient_test$upper <-
-                 coefficient_test$estimate + c_scheffe * coefficient_test$standard_error
+                 ifelse(private$fitting$reduced_model$theta_is_pen,
+                        coefficient_test$estimate + c_scheffe * coefficient_test$standard_error,
+                        coefficient_test$estimate + qnorm(1 - alpha_level / 2) * coefficient_test$standard_error)
              }
            }
            return(coefficient_test)

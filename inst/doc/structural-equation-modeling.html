@@ -90,8 +90,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 lslx_sem &lt;-<span class="st"> </span>lslx<span class="op">$</span><span class="kw">new</span>(<span class="dt">model =</span> model_sem,
                     <span class="dt">sample_cov =</span> <span class="kw">cov</span>(lavaan<span class="op">::</span>PoliticalDemocracy),
                     <span class="dt">sample_size =</span> <span class="kw">nrow</span>(lavaan<span class="op">::</span>PoliticalDemocracy))</code></pre></div>
-<pre><code>NOTE: Because argument 'sample_cov' doesn't contain group name(s), default group name(s) is created.
-An 'lslx' R6 class is initialized via 'sample_cov' argument. 
+<pre><code>An 'lslx' R6 class is initialized via 'sample_cov' argument. 
   Response Variables: x1 x2 x3 y1 y2 y3 y4 y5 y6 y7 y8 
   Latent Factors: ind60 dem60 dem65 </code></pre>
 <p>Here, <code>lslx</code> is the object generator for <code>lslx</code> object and <code>$new()</code> is the build-in method of <code>lslx</code> to generate a new <code>lslx</code> object. The initialization of <code>lslx</code> requires users to specify a model for model specification (argument <code>model</code>) and a sample moments to be fitted (argument <code>sample_cov</code> and <code>sample_size</code>). The sample moment must contain all the observed variables specified in the given model.</p>
