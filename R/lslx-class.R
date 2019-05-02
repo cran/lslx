@@ -3,6 +3,7 @@
 #' @docType class
 #' @useDynLib lslx
 #' @import stats
+#' @import ggplot2
 #' @importFrom Rcpp sourceCpp
 #' @importFrom R6 R6Class
 #' @keywords NULL
@@ -33,7 +34,11 @@
 #' \code{r6_lslx$summarize(selector)}
 #' }
 #' }
-#'
+#' 
+#' To cite \pkg{lslx} in publications use:
+#' 
+#' Po-Hsien Huang (in press). lslx: Semi-Confirmatory Structural Equation Modeling via Penalized Likelihood. Journal of Statistical Software
+#' 
 #'
 #'
 #' @section Overview:
@@ -42,6 +47,7 @@
 #' The confirmatory part includes all of the freely estimated parameters and fixed parameters that are allowed for theory testing.
 #' The exploratory part is composed by a set of penalized parameters describing relationships that cannot be clearly determined by available substantive theory.
 #' By implementing a sparsity-inducing penalty and choosing an optimal penalty level, the relationships in the exploratory part can be efficiently identified by the sparsity pattern of these penalized parameters.
+#' The technical details of \pkg{lslx} can be found in its JSS paper (Huang, in press).
 #'
 #' The main function \code{lslx} generates an object of \code{lslx} R6 class.
 #' R6 class is established via package \pkg{R6} (Chang, 2017) that facilitates encapsulation object-oriented programming in \pkg{R} system.
@@ -60,7 +66,7 @@
 #' Details of the model specification can be found in the sections of \emph{Model Syntax} and \emph{Set-Related Methods}.
 #'
 #' Given a penalty level, \pkg{lslx} finds a PL estimate by minimizing a penalized maximum likelihood (ML) loss function.
-#' The penalty function can be set as lasso (Tibshirani, 1996) or mcp (minimax concave penalty; Zhang, 2010).
+#' The penalty function can be set as lasso (Tibshirani, 1996), ridge (Hoerl & Kennard, 1970), elastic net (Zou & Hastie, 2005), or mcp (minimax concave penalty; Zhang, 2010).
 #' \pkg{lslx} solves the optimization problem based on an improved \pkg{glmnet} method (Friedman, Hastie, & Tibshirani, 2010) made by Yuan, Ho, and Lin (2012).
 #' The underlying optimizer is written by using \pkg{Rcpp} (Eddelbuettel & Francois, 2011) and \pkg{RcppEigen} (Bates & Eddelbuettel, 2013).
 #' Our experiences show that the algorithm can efficiently find a local minimum provided that (1) the starting value is reasonable, and (2) the saturated covariance matrix is not nearly singular.
@@ -80,6 +86,7 @@
 #' Given a penalty level, it is important to evaluate the goodness-of-fit of selected model and coefficients.
 #' In \pkg{lslx}, it is possible to make statistical inferences for goodness-of-fit and coefficients.
 #' However, the inference methods assume that no model selection is conducted, which is not true in the case of using PL.
+#' After version 0.6.4, several post-selection mehtods are available (Huang, 2019).
 #' Details of statistical inference can be found in the sections of \emph{Model Fit Evaluation} and \emph{Coefficient Evaluation}.
 #' Implementations of these methods can be found in the sections of \emph{Summarize Method} and \emph{Test-Related Methods}.
 #'
@@ -424,7 +431,8 @@
 #' \eqn{loss(\theta)}: the loss value under estimate \eqn{\theta};
 #' }
 #' \item{
-#' \eqn{df(\theta)}: the degree of freedom defined by \eqn{G * P * (P + 3) / 2 - e(\theta)} with \eqn{e(\theta)} being the number of non-zero elements in \eqn{\theta}.
+#' \eqn{df(\theta)}: the degree of freedom defined as (1) \eqn{G * P * (P + 3) / 2 - e(\theta)} with \eqn{e(\theta)} being the number of non-zero elements in \eqn{\theta} for Lasso and MCP; 
+#' or (2) the expectation of likelihood ratio statistics with ridge for ridge and elastic net.
 #' }
 #' }
 #' Note the formula for calculating the information criteria in \pkg{lslx} are different to other software solutions.
@@ -645,17 +653,19 @@
 #'   minimum_variance = 1e-4, enforce_cd = FALSE, verbose = TRUE)
 #' $fit_none(...)
 #' $fit_lasso(lambda_grid = "default", ...)
+#' $fit_ridge(lambda_grid = "default", ...)
+#' $fit_elastic_net(lambda_grid = "default", delta_grid = "default", ...)
 #' $fit_mcp(lambda_grid = "default", delta_grid = "default", ...)}
 #'\describe{
 #'\item{\bold{Arguments}}{
 #'
 #'}
 #'\item{\code{penalty_method}}{A \code{character} to specify the penalty method.
-#'   The current version supports \code{"none"}, \code{"lasso"}, and \code{"mcp"}.}
-#'\item{\code{lambda_grid}}{A non-negative \code{numeric} to specify penalty levels for both \code{"lasso"} and \code{"mcp"}.
+#'   The current version supports \code{"none"}, \code{"lasso"}, \code{"ridge"}, \code{"elastic_net"}, and \code{"mcp"}.}
+#'\item{\code{lambda_grid}}{A non-negative \code{numeric} to specify penalty levels for the regularizer.
 #'   If it is set as \code{"default"}, its value will be generated automatically based on the variable scales.}
-#'\item{\code{delta_grid}}{A non-negative \code{numeric} to specify the convexity level for \code{"mcp"}.
-#'   If it is set as \code{"default"}, its value will be generated automatically based on the variable scales.}
+#'\item{\code{delta_grid}}{A non-negative \code{numeric} to specify the combination weight for \code{"elastic_net"} or the convexity level for \code{"mcp"}.
+#'   If it is set as \code{"default"}, its value will be generated automatically.}
 #'\item{\code{loss}}{A \code{character} to determine the loss function.
 #'   The current version supports \code{"ml"} (maximum likelihood), \code{"uls"} (unweighted least squares), 
 #'   \code{"dwls"} (diagonal weighted least squres), and \code{"wls"} (weighted least squares). 
@@ -703,16 +713,22 @@
 #' The success of these methods may depend on the specified fitting control.
 #' For details of optimization algorithm, see the section of \emph{Optimization Algorithm}.
 #'
-#' \code{$fit()} fits the specified model to data by minimizing a penalized ML loss function.
+#' \code{$fit()} fits the specified model to data by minimizing a penalized loss function.
 #' It is the most comprehensive fit method and hence many arguments can be specified.
 #'
-#' \code{$fit_none()} fits the specified model to data by minimizing a ML loss function without penalty.
+#' \code{$fit_none()} fits the specified model to data by minimizing a loss function without penalty.
 #' It is a user convinient wrapper of \code{$fit()} with \code{penalty_method = "none"}.
 #'
-#' \code{$fit_lasso()} fits the specified model to data by minimizing a ML loss function with lasso penalty (Tibshirani, 1996).
+#' \code{$fit_lasso()} fits the specified model to data by minimizing a loss function with lasso penalty (Tibshirani, 1996).
 #' It is a user convinient wrapper of \code{$fit()} with \code{penalty_method = "lasso"}.
 #'
-#' \code{$fit_mcp()} method fits the specified model to data by minimizing a ML loss function with mcp (Zhang, 2010).
+#' \code{$fit_ridge()} fits the specified model to data by minimizing a loss function with ridge penalty (Hoerl & Kennard, 1970).
+#' It is a user convinient wrapper of \code{$fit()} with \code{penalty_method = "ridge"}.
+#' 
+#' \code{$fit_elastic_net()} fits the specified model to data by minimizing a loss function with elastic net penalty (Zou & Hastie, 2005).
+#' It is a user convinient wrapper of \code{$fit()} with \code{penalty_method = "elastic_net"}.
+#' 
+#' \code{$fit_mcp()} method fits the specified model to data by minimizing a loss function with mcp (Zhang, 2010).
 #' It is a user convinient wrapper of \code{$fit()} with \code{penalty_method = "mcp"}.
 #'
 #'
@@ -776,10 +792,10 @@
 #'\item{\code{selector}}{A \code{character} to specify a selector for determining an optimal penalty level.
 #'   Its value can be any one in \code{"aic"}, \code{"aic3"}, \code{"caic"}, \code{"bic"}, \code{"abic"}, \code{"hbic"},
 #'   or their robust counterparts \code{"raic"}, \code{"raic3"}, \code{"rcaic"}, \code{"rbic"}, \code{"rabic"}, \code{"rhbic"} if raw data is available.}
-#'\item{\code{lambda}}{A \code{numeric} to specific a chosen optimal penalty level. 
-#'   If the specified \code{lambda} is not in \code{lambda_grid}, a nearest legitimate value will be used. }
-#'\item{\code{delta}}{A \code{numeric} to specific a chosen optimal convexity level.
+#'\item{\code{delta}}{A \code{numeric} to specific a chosen optimal weight for elastic net or convexity level for mcp.
 #'   If the specified \code{delta} is not in \code{delta_grid}, a nearest legitimate value will be used.}
+#'\item{\code{step}}{A \code{numeric} to specific a chosen step for stepwise searching.
+#'   If the specified \code{step} is not in \code{step_grid}, a nearest legitimate value will be used.}
 #'\item{\code{standard_error}}{A \code{character} to specify the standard error to be used for hypothesis testing.
 #'   The argument can be either \code{"sandwich"}, \code{"expected_information"}, and \code{"observed_information"}.
 #'   If it is specified as \code{"default"}, it will be set as
@@ -812,10 +828,10 @@
 #' For details of standard error formula for coefficients, see the section of \emph{Coefficient Evaluation}.
 #'
 #' @section Plot-Related Methods:
-#' \preformatted{$plot_numerical_condition(condition, lambda_scale = "default", mode = "default")
-#' $plot_information_criterion(criterion, lambda_scale = "default", mode = "default")
-#' $plot_fit_index(index, lambda_scale = "default", mode = "default")
-#' $plot_coefficient(block, left, right, both, lambda_scale = "default", 
+#' \preformatted{$plot_numerical_condition(condition, x_scale = "default", mode = "default")
+#' $plot_information_criterion(criterion, x_scale = "default", mode = "default")
+#' $plot_fit_index(index, x_scale = "default", mode = "default")
+#' $plot_coefficient(block, left, right, both, x_scale = "default", 
 #'   mode = "default")}
 #' \describe{
 #' \item{\bold{Arguments}}{
@@ -882,43 +898,46 @@
 #' $extract_saturated_mean()
 #' $extract_saturated_moment_acov()
 #'
-#' $extract_penalty_level(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_penalty_level(selector, lambda, delta, step, include_faulty = FALSE)
 #' 
-#' $extract_numerical_condition(selector, lambda, delta, include_faulty = FALSE)
-#' $extract_information_criterion(selector, lambda, delta, include_faulty = FALSE)
-#' $extract_fit_index(selector, lambda, delta, include_faulty = FALSE)
-#' $extract_cv_error(selector, lambda, delta, include_faulty = FALSE)
-#' $extract_coefficient(selector, lambda, delta, type = "default", 
+#' $extract_numerical_condition(selector, lambda, delta, step, include_faulty = FALSE)
+#' $extract_information_criterion(selector, lambda, delta, step, include_faulty = FALSE)
+#' $extract_fit_index(selector, lambda, delta, step, include_faulty = FALSE)
+#' $extract_cv_error(selector, lambda, delta, step, include_faulty = FALSE)
+#' 
+#' $extract_coefficient(selector, lambda, delta, step, type = "default", 
+#'   include_faulty = FALSE)
+#' $extract_debiased_coefficient(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)
 #'
-#' $extract_implied_cov(selector, lambda, delta, include_faulty = FALSE)
-#' $extract_implied_mean(selector, lambda, delta, include_faulty = FALSE)
-#' $extract_residual_cov(selector, lambda, delta, include_faulty = FALSE)
-#' $extract_residual_mean(selector, lambda, delta, include_faulty = FALSE)
+#' $extract_implied_cov(selector, lambda, delta, step, include_faulty = FALSE)
+#' $extract_implied_mean(selector, lambda, delta, step, include_faulty = FALSE)
+#' $extract_residual_cov(selector, lambda, delta, step, include_faulty = FALSE)
+#' $extract_residual_mean(selector, lambda, delta, step, include_faulty = FALSE)
 #'
-#' $extract_coefficient_matrix(selector, lambda, delta, block, 
+#' $extract_coefficient_matrix(selector, lambda, delta, step, block, 
 #'   include_faulty = FALSE)
 #' 
-#' $extract_moment_jacobian(selector, lambda, delta, type = "default", 
+#' $extract_moment_jacobian(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)
 #'
-#' $extract_expected_information(selector, lambda, delta, type = "default", 
+#' $extract_expected_information(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)
-#' $extract_observed_information(selector, lambda, delta, type = "default", 
+#' $extract_observed_information(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)
 #' 
-#' $extract_bfgs_hessian(selector, lambda, delta, type = "default", 
+#' $extract_bfgs_hessian(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)
-#' $extract_score_acov(selector, lambda, delta, type = "default", 
+#' $extract_score_acov(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)
-#' $extract_coefficient_acov(selector, lambda, delta, standard_error = "default",
+#' $extract_coefficient_acov(selector, lambda, delta, step, standard_error = "default",
 #'   type = "default", include_faulty = FALSE)
 #'
-#' $extract_loss_gradient(selector, lambda, delta, type = "default", 
+#' $extract_loss_gradient(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)
-#' $extract_regularizer_gradient(selector, lambda, delta, type = "default", 
+#' $extract_regularizer_gradient(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)
-#' $extract_objective_gradient(selector, lambda, delta, type = "default", 
+#' $extract_objective_gradient(selector, lambda, delta, step, type = "default", 
 #'   include_faulty = FALSE)}
 #' \describe{
 #' \item{\bold{Arguments}}{
@@ -929,8 +948,10 @@
 #'   or their robust counterparts \code{"raic"}, \code{"raic3"}, \code{"rcaic"}, \code{"rbic"}, \code{"rabic"}, \code{"rhbic"} if raw data is available.}
 #'\item{\code{lambda}}{A \code{numeric} to specific a chosen optimal penalty level. 
 #'   If the specified \code{lambda} is not in \code{lambda_grid}, a nearest legitimate value will be used. }
-#'\item{\code{delta}}{A \code{numeric} to specific a chosen optimal convexity level.
+#'\item{\code{delta}}{A \code{numeric} to specific a chosen optimal weight for elastic net or convexity level for mcp.
 #'   If the specified \code{delta} is not in \code{delta_grid}, a nearest legitimate value will be used.}
+#'\item{\code{step}}{A \code{numeric} to specific a chosen step for stepwise searching.
+#'   If the specified \code{step} is not in \code{step_grid}, a nearest legitimate value will be used.}
 #'\item{\code{standard_error}}{A \code{character} to specify the standard error to be used for hypothesis testing.
 #'   The argument can be either \code{"sandwich"}, \code{"expected_information"}, and \code{"observed_information"}.
 #'   If it is specified as \code{"default"}, it will be set as
@@ -1028,7 +1049,11 @@
 #'
 #' Haughton, D. M. A., Oud, J. H. L., & Jansen, R. A. R. G. (1997). Information and other criteria in structural equation model selection. Communications in Statistics - Simulation and Computation, 26(4), 1477–1516.
 #'
-#' Huang PH (in press). A Penalized Likelihood Method for Multi-Group Structural Equation Modeling. British Journal of Mathematical and Statistical Psychology.
+#' Hoerl, A. E., & Kennard, R. W. (1970). Ridge Regression: Biased Estimation for Nonorthogonal Problems. Technometrics, 12(1), 55–67.
+#' 
+#' Huang, P. H. (2018). A Penalized Likelihood Method for Multi-Group Structural Equation Modeling. British Journal of Mathematical and Statistical Psychology, 71(3),  499-522.
+#' 
+#' Huang, P. H. (2019). Post-selection inference in structural equation modeling. Under Revision.
 #'
 #' Huang, P. H., Chen, H., & Weng, L. J. (2017). A Penalized Likelihood Method for Structural Equation Modeling. Psychometrika, 82(2), 329–354.
 #'
@@ -1076,6 +1101,7 @@
 #'
 #' Zhang, C. H. (2010). Nearly unbiased variable selection under minimax concave penalty. Annals of Statistics, 38(2), 894–942.
 #'
+#' Zou, H., & Hastie, T. (2005). Regularization and Variable Selection via the Elastic Net. Journal of the Royal Statistical Society B, 67(2), 301–320.
 #'
 #' @examples
 #' ## EXAMPLE: Regression Analysis with Lasso Penalty ##

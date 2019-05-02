@@ -4,6 +4,7 @@ lslx$set("public",
          function(penalty_method = "mcp",
                   lambda_grid = "default",
                   delta_grid = "default",
+                  step_grid = "default",
                   loss = "default",
                   algorithm = "default",
                   missing_method = "default",
@@ -37,6 +38,7 @@ lslx$set("public",
                penalty_method = penalty_method,
                lambda_grid = lambda_grid,
                delta_grid = delta_grid,
+               step_grid = step_grid,
                loss = loss,
                algorithm = algorithm,
                missing_method = missing_method,
@@ -69,13 +71,23 @@ lslx$set("public",
              lslxFitting$new(model = private$model,
                              data = private$data,
                              control = control)
-           compute_regularized_path_cpp(
-             private$fitting$reduced_data,
-             private$fitting$reduced_model,
-             private$fitting$control,
-             private$fitting$supplied_result,
-             private$fitting$fitted_result
-           )
+           if (private$fitting$control$regularizer) {
+             compute_regularized_path_cpp(
+               private$fitting$reduced_data,
+               private$fitting$reduced_model,
+               private$fitting$control,
+               private$fitting$supplied_result,
+               private$fitting$fitted_result
+             )
+           } else {
+             compute_stepwise_path_cpp(
+               private$fitting$reduced_data,
+               private$fitting$reduced_model,
+               private$fitting$control,
+               private$fitting$supplied_result,
+               private$fitting$fitted_result
+             )
+           }
            
            private$fitting$fitted_result$is_finite <-
              sapply(
@@ -185,24 +197,38 @@ lslx$set("public",
              }
            }
            
-           name_grid <-
-             paste0(
-               "ld=",
-               sapply(
-                 X = private$fitting$fitted_result$numerical_condition,
-                 FUN = function(x) {
-                   getElement(x, "lambda")
-                 }
-               ),
-               "/",
-               "gm=",
-               sapply(
-                 X = private$fitting$fitted_result$numerical_condition,
-                 FUN = function(x) {
-                   getElement(x, "delta")
-                 }
+           if (private$fitting$control$regularizer) {
+             name_grid <-
+               paste0(
+                 "ld=",
+                 sapply(
+                   X = private$fitting$fitted_result$numerical_condition,
+                   FUN = function(x) {
+                     getElement(x, "lambda")
+                   }
+                 ),
+                 "/",
+                 "gm=",
+                 sapply(
+                   X = private$fitting$fitted_result$numerical_condition,
+                   FUN = function(x) {
+                     getElement(x, "delta")
+                   }
+                 )
                )
-             )
+           } else {
+             name_grid <-
+               paste0(
+                 "step=",
+                 sapply(
+                   X = private$fitting$fitted_result$numerical_condition,
+                   FUN = function(x) {
+                     getElement(x, "step")
+                   }
+                 )
+               )
+           }
+
 
            names(private$fitting$fitted_result$numerical_condition) <-
              name_grid
@@ -244,7 +270,7 @@ lslx$set("public",
            }
          })
 
-## \code{$fit_lasso()} fits the specified model to data by minimizing a ML loss function with lasso penalty (Tibshirani, 1996). ##
+## \code{$fit_lasso()} fits the specified model to data by minimizing a loss function with lasso penalty (Tibshirani, 1996). ##
 lslx$set("public",
          "fit_lasso",
          function(lambda_grid = "default",
@@ -254,7 +280,31 @@ lslx$set("public",
                     ...)
          })
 
-## \code{$fit_mcp()} method fits the specified model to data by minimizing a ML loss function with mcp (Zhang, 2010). ##
+## \code{$fit_ridge()} fits the specified model to data by minimizing a loss function with ridge penalty (Hoerl & Kennard, 1970). ##
+lslx$set("public",
+         "fit_ridge",
+         function(lambda_grid = "default",
+                  ...) {
+           self$fit(penalty_method = "ridge",
+                    lambda_grid = lambda_grid,
+                    ...)
+         })
+
+## \code{$fit_elastic_net()} method fits the specified model to data by minimizing a loss function with elastic net (Zou & Hastie, 2005). ##
+lslx$set("public",
+         "fit_elastic_net",
+         function(lambda_grid = "default",
+                  delta_grid = "default",
+                  ...) {
+           self$fit(
+             penalty_method = "elastic_net",
+             lambda_grid = lambda_grid,
+             delta_grid = delta_grid,
+             ...
+           )
+         })
+
+## \code{$fit_mcp()} method fits the specified model to data by minimizing a loss function with mcp (Zhang, 2010). ##
 lslx$set("public",
          "fit_mcp",
          function(lambda_grid = "default",
@@ -268,7 +318,7 @@ lslx$set("public",
            )
          })
 
-## \code{$fit_none()} method fits the specified model to data by minimizing a ML loss function without penalty. ##
+## \code{$fit_none()} method fits the specified model to data by minimizing a loss function without penalty. ##
 lslx$set("public",
          "fit_none",
          function(...) {
