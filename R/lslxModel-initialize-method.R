@@ -1,27 +1,3 @@
-## define R6 class \code{lslxModel} to store model information. ##
-lslxModel <-
-  R6::R6Class(
-    classname = "lslxModel",
-    public = list(
-      model = "character",
-      numeric_variable = "character",
-      ordered_variable = "character",
-      weight_variable = "character",
-      auxiliary_variable = "character",
-      group_variable = "character",
-      reference_group = "character",
-      level_group = "character",
-      name_response = "character",
-      name_factor = "character",
-      name_eta = "character",
-      name_exogenous = "character",
-      name_endogenous = "character",
-      name_covariate = "character",
-      nlevel_ordered = "numeric",
-      specification = "data.frame"
-    )
-  )
-
 ## \code{$new()} initializes a new \code{lslxModel} object. ##
 lslxModel$set("public",
               "initialize",
@@ -83,6 +59,10 @@ lslxModel$set("private",
                        replacement = "<=>",
                        x = model)
                 model <-
+                  gsub(pattern = "~\\*~",
+                       replacement = "\\*=\\*",
+                       x = model)
+                model <-
                   ifelse(
                     !grepl(pattern = "\\|=|=\\||\\|~|~\\|",
                            x = model),
@@ -116,6 +96,8 @@ lslxModel$set("private",
                               "=|",
                               "|~",
                               "~|",
+                              "*=*",
+                              "*~*",
                               "<=:",
                               "<~:",
                               ":=>",
@@ -137,6 +119,8 @@ lslxModel$set("private",
                                   "=\\|",
                                   "\\|~",
                                   "~\\|",
+                                  "\\*=\\*",
+                                  "\\*~\\*",
                                   "<=:",
                                   "<~:",
                                   ":=>",
@@ -232,6 +216,24 @@ lslxModel$set("private",
                                                        c("<=>", "<~>"))] == "1")) {
                                   stop("Intercept term '1' cannot present at the arrow side of expression.")
                                 }
+                                if (any(model_i$right[model_i$operator %in%
+                                                      c("|=", "|~")] == "1") |
+                                    any(model_i$left[model_i$operator %in%
+                                                     c("|=", "|~")] == "1")) {
+                                  stop(
+                                    "Intercept term '1' cannot present at any side of expression for threshold specification."
+                                  )
+                                }
+                                if (any(model_i$right[model_i$operator %in%
+                                                      c("*=*", "*~*")] == "1") |
+                                    any(model_i$left[model_i$operator %in%
+                                                     c("*=*", "*~*")] == "1")) {
+                                  stop(
+                                    "Intercept term '1' cannot present at any side of expression for scale specification."
+                                  )
+                                }
+
+                                
                                 model_i$left_prefix <-
                                   sapply(
                                     left_i_split,
@@ -269,8 +271,10 @@ lslxModel$set("private",
                                            ifelse(model_i$operator %in%
                                                     c("<=>", "<~>"),
                                                   "<->",
-                                                  "|")
-                                         ),
+                                                  ifelse(model_i$operator %in% 
+                                                           c("|=", "|~"),
+                                                         "|",
+                                                         "**"))),
                                          model_i$right)
                                 model_i$operator <-
                                   ifelse(
@@ -337,7 +341,6 @@ lslxModel$set("private",
                                                                    c("|=", "|~")),
                                                                c("left", "right")])),
                           y = c(self$name_factor, "1"))
-                
                 if (!all(self$name_response %in% 
                          union(x = self$numeric_variable,
                                y = self$ordered_variable))) {
@@ -361,8 +364,10 @@ lslxModel$set("private",
                 if (length(self$ordered_variable) > 0) {
                   self$nlevel_ordered <- 
                     nlevel_ordered[self$ordered_variable] 
+                  self$name_threshold <- paste0("t", 1:(max(nlevel_ordered) - 1))
                 } else {
                   self$nlevel_ordered <- numeric(0)
+                  self$name_threshold <- character(0)
                 }
                 self$auxiliary_variable <-
                   setdiff(x = self$auxiliary_variable,
@@ -412,17 +417,24 @@ lslxModel$set("private",
                   self$specification[!duplicated(self$specification$relation,
                                                  fromLast = TRUE),]
                 if (length(self$ordered_variable) > 0) {
-                  relation_gamma <- 
-                    setdiff(x = mapply(
+                  relation_gamma <-
+                    unlist(mapply(
                       FUN = function(ordered_variable_i, 
                                      nlevel_ordered_i) {
                         paste0(ordered_variable_i,
                                "|",
                                paste0("t", 1:(nlevel_ordered_i - 1)))
-                    },
-                    self$ordered_variable,
-                    self$nlevel_ordered),
-                    y = self$specification$relation)
+                      },
+                      self$ordered_variable,
+                      self$nlevel_ordered),
+                      use.names = FALSE)
+                  if (!all(self$specification[(self$specification$operator %in%
+                                               c("|=", "|~")),
+                                              "relation"] %in% (relation_gamma))) {
+                    stop("Some specification for thresholds are not recognized.")
+                  }
+                  relation_gamma <-
+                    setdiff(x = relation_gamma, y = self$specification$relation)
                 } else {
                   relation_gamma <- character(0)
                 }
@@ -447,6 +459,43 @@ lslxModel$set("private",
                 } else {
                   specification_gamma = data.frame()
                 }
+                if (length(self$ordered_variable) > 0) {
+                  relation_psi <- paste0(self$ordered_variable, 
+                                         "**", 
+                                         self$ordered_variable)
+                  
+                  if (!all(self$specification[(self$specification$operator %in%
+                                               c("*=*", "*~*")),
+                                              "relation"] %in% (relation_psi))) {
+                    stop("Some specification for scale are not recognized.")
+                  }
+                  relation_psi <-
+                    setdiff(x = relation_psi, y = self$specification$relation)
+                } else {
+                  relation_psi <- character(0)
+                }
+                if (length(relation_psi) > 0) {
+                  specification_psi <-
+                    data.frame(
+                      relation = relation_psi,
+                      left = substr(
+                        relation_psi,
+                        start = 1,
+                        stop = regexpr("\\*\\*", relation_psi) - 1
+                      ),
+                      right = substr(
+                        relation_psi,
+                        start = regexpr("\\*\\*", relation_psi) + 2,
+                        stop = nchar(relation_psi)
+                      ),
+                      operator = "*=*",
+                      prefix = 1,
+                      stringsAsFactors = FALSE
+                    )
+                } else {
+                  specification_psi = data.frame()
+                }
+                
                 if (any(self$specification$right == "1")) {
                   if (length(intersect(x = self$numeric_variable,
                                        y = self$name_exogenous)) > 0) {
@@ -545,6 +594,7 @@ lslxModel$set("private",
                     specification_gamma,
                     specification_alpha,
                     specification_phi,
+                    specification_psi,
                     make.row.names = FALSE,
                     stringsAsFactors = FALSE
                   )
@@ -574,20 +624,23 @@ lslxModel$set("private",
                                ifelse(gsub(pattern = "\\(.*$", replacement = "", x = prefix_i) %in% 
                                         c("free", "fix", "pen", "start", "lab"),
                                       prefix_i,
-                                      ifelse(suppressWarnings(!is.na(as.numeric(prefix_i))),
-                                             paste0("fix", "(",  prefix_i, ")"),
-                                             paste0("lab", "(",  prefix_i, ")")))
+                                      ifelse(prefix_i %in% "NA",
+                                             paste0("free", "(",  prefix_i, ")"),
+                                             ifelse(suppressWarnings(!is.na(as.numeric(prefix_i))),
+                                                    paste0("fix", "(",  prefix_i, ")"),
+                                                    paste0("lab", "(",  prefix_i, ")"))))
                            } 
                            return(prefix_i)
                          })
-                
-                
                 if (anyNA(self$reference_group)) {
                   if (any(sapply(X = prefix_split,
                                  FUN = function(prefix_split_i) {
                                    return(length(prefix_split_i) > 1)
                                  }))) {
-                    stop("Vectorized prefix cannot be applied to the case of 'reference_group = NA'.")
+                    stop("When 'reference_group = NA', vectorized prefix cannot be used.")
+                  }
+                  if (length(self$ordered_variable) > 0) {
+                    stop("When 'reference_group = NA', response variable cannot be ordered.")
                   }
                   self$specification <- 
                     do.call(what = rbind,
@@ -666,6 +719,8 @@ lslxModel$set("private",
                                                 c("free", "fix", "pen", "start")) {
                                               prefix_split_j <- 
                                                 paste0(prefix_split_j_verb, "(", 0, ")")
+                                            } else if (prefix_split_j_verb %in% c("lab")) {
+                                              prefix_split_j <- "fix(0)"
                                             } else {
                                               prefix_split_j <- NA
                                             }
@@ -691,15 +746,16 @@ lslxModel$set("private",
                     x = ifelse(
                       self$specification$operator %in% c("|=", "|~"),
                       "gamma",
-                      ifelse(
-                        self$specification$operator %in% c("<=>", "<~>"),
-                        "phi",
-                        ifelse(self$specification$right == "1",
-                               "alpha",
-                               "beta")
-                      )
-                    ),
-                    levels = c("gamma", "alpha", "beta", "phi")
+                      ifelse(self$specification$operator %in% c("*=*", "*~*"),
+                             "psi",
+                             ifelse(
+                               self$specification$operator %in% c("<=>", "<~>"),
+                               "phi",
+                               ifelse(self$specification$right == "1",
+                                      "alpha",
+                                      "beta")
+                             ))),
+                    levels = c("gamma", "alpha", "beta", "phi", "psi")
                   )
                 self$specification$block <-
                   with(self$specification, {
@@ -722,9 +778,11 @@ lslxModel$set("private",
                     block_middle <-
                       ifelse(matrix %in% "gamma",
                              "|",
-                             ifelse(matrix %in% c("alpha", "beta"),
-                                    "<-",
-                                    "<->"))
+                             ifelse(matrix %in% "psi",
+                                    "**",
+                                    ifelse(matrix %in% c("alpha", "beta"),
+                                           "<-",
+                                           "<->")))
                     paste0(block_left, block_middle, block_right)
                   })
                 
@@ -740,11 +798,18 @@ lslxModel$set("private",
                                     ifelse(prefix_verb %in% "pen",
                                            "pen",
                                            ifelse(
-                                             operator %in% c("|=", "<=:", "<=", "<=>"),
+                                             operator %in% c("|=", "*=*", "<=:", "<=", "<=>"),
                                              "free",
                                              "pen"))))
                     return(type)
                   })
+                self$specification$type <-
+                  ifelse(self$specification$relation %in% 
+                           c(paste0(self$ordered_variable, 
+                                    "<->", 
+                                    self$ordered_variable)),
+                         "fixed",
+                         self$specification$type)
                 self$specification$start <-
                   with(self$specification, {
                     prefix_verb <- 
@@ -759,7 +824,13 @@ lslxModel$set("private",
                              NA_real_)
                     return(start)
                   })
-                
+                self$specification$start <-
+                  ifelse(self$specification$relation %in% 
+                           paste0(self$ordered_variable, 
+                                  "<->", 
+                                  self$ordered_variable),
+                         NA_real_,
+                         self$specification$start)
                 self$specification$label <-
                   with(self$specification, {
                     prefix_verb <- 
@@ -776,21 +847,55 @@ lslxModel$set("private",
                   })
                 self$specification$operator <- NULL
                 self$specification$prefix <- NULL
-                self$specification <-
-                  self$specification[order(
-                    self$specification$reference,
-                    self$specification$group,
-                    self$specification$matrix,
-                    self$specification$block,
-                    match(self$specification$right, self$name_eta),
-                    match(self$specification$left, self$name_eta),
-                    method = "radix"
+                if (length(self$ordered_variable) > 0) {
+                  specification_gamma <- self$specification[self$specification$matrix == "gamma", ]
+                  specification_non_gamma <- self$specification[self$specification$matrix != "gamma", ]
+                  specification_gamma <- 
+                    specification_gamma[order(
+                      specification_gamma$reference,
+                      specification_gamma$group,
+                      specification_gamma$matrix,
+                      specification_gamma$block,
+                      match(specification_gamma$left, self$name_eta),
+                      match(specification_gamma$right, c("1", self$name_threshold, self$name_eta)),
+                      method = "radix"
                   ),]
+                  specification_non_gamma <- 
+                    specification_non_gamma[order(
+                      specification_non_gamma$reference,
+                      specification_non_gamma$group,
+                      specification_non_gamma$matrix,
+                      specification_non_gamma$block,
+                      match(specification_non_gamma$right, c("1", self$name_threshold, self$name_eta)),
+                      match(specification_non_gamma$left, self$name_eta),
+                      method = "radix"
+                    ),]
+                  self$specification <- rbind(specification_gamma, 
+                                              specification_non_gamma)
+                  self$specification <-
+                    self$specification[order(
+                      self$specification$reference,
+                      self$specification$group,
+                      self$specification$matrix,
+                      self$specification$block,
+                      method = "radix"
+                    ),]
+                } else {
+                  self$specification <-
+                    self$specification[order(
+                      self$specification$reference,
+                      self$specification$group,
+                      self$specification$matrix,
+                      self$specification$block,
+                      match(self$specification$right, c("1", self$name_threshold, self$name_eta)),
+                      match(self$specification$left, self$name_eta),
+                      method = "radix"
+                    ),]
+                }
                 self$specification <-
                   self$specification[order(
                     self$specification$reference,
                     decreasing = TRUE,
                     method = "radix"
                   ), ]
-                
               })

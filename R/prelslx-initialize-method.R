@@ -24,10 +24,13 @@ prelslx$set("public",
                   if (!is.data.frame(data)) {
                     stop("Argument 'data' is not a 'data.frame'.")
                   }
-                  if (missing(numeric_variable)) {
-                    numeric_variable <- 
-                      colnames(data)[sapply(X = data, FUN = is.numeric)]
-                  } else {
+                  if (!missing(numeric_variable) &
+                      !missing(ordered_variable)) {
+                    if (length(intersect(numeric_variable, ordered_variable)) == 0) {
+                      stop("Arguments 'numeric_variable' and 'ordered_variable' share the same variables.")
+                    }
+                  }
+                  if (!missing(numeric_variable)) {
                     if (!is.character(numeric_variable)) {
                       stop("Argument 'numeric_variable' is not a 'character'.")
                     }
@@ -41,10 +44,7 @@ prelslx$set("public",
                                })
                     }
                   }
-                  if (missing(ordered_variable)) {
-                    ordered_variable <- 
-                      colnames(data)[sapply(X = data, FUN = is.ordered)]
-                  } else {
+                  if (!missing(ordered_variable)) {
                     if (!is.character(ordered_variable)) {
                       stop("Argument 'ordered_variable' is not a 'character'.")
                     }
@@ -58,6 +58,10 @@ prelslx$set("public",
                                })
                     }
                   }
+                  numeric_variable <- 
+                    colnames(data)[sapply(X = data, FUN = is.numeric)]
+                  ordered_variable <- 
+                    colnames(data)[sapply(X = data, FUN = is.ordered)]
                   if (length(ordered_variable) > 0) {
                     nlevel_ordered <- sapply(X = data[, ordered_variable],
                                              FUN = nlevels)
@@ -198,11 +202,15 @@ prelslx$set("public",
                   sample_mean = sample_mean,
                   sample_size = sample_size,
                   sample_moment_acov = sample_moment_acov,
-                  group_variable = private$model$group_variable,
+                  numeric_variable = private$model$numeric_variable,
+                  ordered_variable = private$model$ordered_variable,
                   weight_variable = private$model$weight_variable,
                   auxiliary_variable = private$model$auxiliary_variable,
-                  name_response = private$model$name_response,
-                  level_group = private$model$level_group
+                  group_variable = private$model$group_variable,
+                  reference_group = private$model$reference_group,
+                  level_group = private$model$level_group,
+                  nlevel_ordered = private$model$nlevel_ordered,
+                  name_response = private$model$name_response
                 )
               private$fitting <- NULL
               if (verbose) {

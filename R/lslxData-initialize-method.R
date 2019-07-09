@@ -1,19 +1,3 @@
-## define R6 class \code{lslxData} to store data. ##
-lslxData <-
-  R6::R6Class(
-    classname = "lslxData",
-    public = list(
-      index = "list",
-      response = "list",
-      pattern = "list",
-      weight = "list",
-      auxiliary = "list",
-      sample_cov = "list",
-      sample_mean = "list",
-      sample_size = "list",
-      sample_moment_acov = "list"
-    )
-  )
 
 ## \code{$new()} initializes a new \code{lslxData} object. ##
 lslxData$set("public",
@@ -23,12 +7,15 @@ lslxData$set("public",
                       sample_mean,
                       sample_size,
                       sample_moment_acov,
+                      numeric_variable,
                       ordered_variable,
                       weight_variable,
                       auxiliary_variable,
                       group_variable,
-                      name_response,
-                      level_group) {
+                      reference_group,
+                      level_group,
+                      nlevel_ordered,
+                      name_response) {
                if (!missing(data)) {
                  index <- 1:nrow(data)
                  row.names(data) <- index
@@ -337,6 +324,14 @@ lslxData$set("public",
                  self$sample_size <- sample_size
                  self$sample_moment_acov <- sample_moment_acov
                }
+               self$numeric_variable <- numeric_variable
+               self$ordered_variable <- ordered_variable
+               self$weight_variable <- weight_variable
+               self$auxiliary_variable <- auxiliary_variable
+               self$group_variable <- group_variable
+               self$reference_group <- reference_group
+               self$level_group <- level_group
+               self$nlevel_ordered <- nlevel_ordered
+               self$name_response <- name_response
              })
-
 

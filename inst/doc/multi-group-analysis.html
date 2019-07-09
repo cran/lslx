@@ -353,9 +353,9 @@ NOTE: Because Pasteur is set as reference, a relation under other group actually
 NOTE: Please check whether the starting value for the increment represents a difference. </code></pre>
 <p>Since the homogeneity of latent factor means may not be a reasonable assumption when examining measurement invariance, the following code relaxes this assumption</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">lslx_mgfa<span class="op">$</span><span class="kw">free_block</span>(<span class="dt">block =</span> <span class="st">&quot;f&lt;-1&quot;</span>, <span class="dt">group =</span> <span class="st">&quot;Grant-White&quot;</span>)</a></code></pre></div>
-<pre><code>The relation visual&lt;-1 under Grant-White is set as FREE with starting value = NA. 
-The relation textual&lt;-1 under Grant-White is set as FREE with starting value = NA. 
-The relation speed&lt;-1 under Grant-White is set as FREE with starting value = NA. 
+<pre><code>The relation visual&lt;-1 under Grant-White is set as FREE with starting value = 0. 
+The relation textual&lt;-1 under Grant-White is set as FREE with starting value = 0. 
+The relation speed&lt;-1 under Grant-White is set as FREE with starting value = 0. 
 NOTE: Because Pasteur is set as reference, a relation under other group actually represents an increment. 
 NOTE: Please check whether the starting value for the increment represents a difference. </code></pre>
 <p>To see more methods to modify a specified model, please check the section of Set-Related Method via <code>?lslx</code>.</p>
@@ -413,7 +413,7 @@ Root Mean Square Error of Approximation Test
    unadjusted           0.090      0.065      0.115
    mean-adjusted        0.089      0.063      0.114
 
-Coefficient Test (Group = &quot;Pasteur&quot;, Std.Error = &quot;default&quot;)
+Coefficient Test (Group = &quot;Pasteur&quot;, Std.Error = &quot;sandwich&quot;)
   Factor Loading (reference component)
                       type  estimate  std.error  z-value  p-value  lower  upper
        x1&lt;-visual    fixed     1.000        -        -        -      -      -  
@@ -459,7 +459,7 @@ textual&lt;-&gt;textual     free     0.879      0.135    6.537    0.000  0.616  
             x8&lt;-1     free     5.569      0.074   75.611    0.000  5.425  5.713
             x9&lt;-1     free     5.409      0.070   77.060    0.000  5.272  5.547
 
-Coefficient Test (Group = &quot;Grant-White&quot;, Std.Error = &quot;default&quot;)
+Coefficient Test (Group = &quot;Grant-White&quot;, Std.Error = &quot;sandwich&quot;)
   Factor Loading (increment component)
                       type  estimate  std.error  z-value  p-value  lower  upper
        x1&lt;-visual    fixed     0.000        -        -        -      -      -  

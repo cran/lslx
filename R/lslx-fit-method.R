@@ -71,6 +71,7 @@ lslx$set("public",
              lslxFitting$new(model = private$model,
                              data = private$data,
                              control = control)
+           
            if (private$fitting$control$regularizer) {
              compute_regularized_path_cpp(
                private$fitting$reduced_data,
@@ -79,7 +80,7 @@ lslx$set("public",
                private$fitting$supplied_result,
                private$fitting$fitted_result
              )
-           } else {
+           } else if (private$fitting$control$searcher) {
              compute_stepwise_path_cpp(
                private$fitting$reduced_data,
                private$fitting$reduced_model,
@@ -87,8 +88,15 @@ lslx$set("public",
                private$fitting$supplied_result,
                private$fitting$fitted_result
              )
+           } else {
+             compute_none_path_cpp(
+               private$fitting$reduced_data,
+               private$fitting$reduced_model,
+               private$fitting$control,
+               private$fitting$supplied_result,
+               private$fitting$fitted_result
+             )
            }
-           
            private$fitting$fitted_result$is_finite <-
              sapply(
                X = private$fitting$fitted_result$numerical_condition,
@@ -314,6 +322,30 @@ lslx$set("public",
              penalty_method = "mcp",
              lambda_grid = lambda_grid,
              delta_grid = delta_grid,
+             ...
+           )
+         })
+
+## \code{$fit_forward()} method fits the specified model to data by minimizing a loss function with forward searching. ##
+lslx$set("public",
+         "fit_forward",
+         function(step_grid = "default",
+                  ...) {
+           self$fit(
+             penalty_method = "forward",
+             step_grid = step_grid,
+             ...
+           )
+         })
+
+## \code{$fit_backward()} method fits the specified model to data by minimizing a loss function with backward searching. ##
+lslx$set("public",
+         "fit_backward",
+         function(step_grid = "default",
+                  ...) {
+           self$fit(
+             penalty_method = "backward",
+             step_grid = step_grid,
              ...
            )
          })

@@ -1,141 +1,10 @@
 // Cpp class lslxOptimizer for minimizing PL criterion
 // written by Po-Hsien Huang psyphh@gmail.com
 
-#include <RcppEigen.h>
-#include <limits>
-#include <cmath>
-#include <algorithm>
-#include <cfloat>
-#include <string.h>
-using namespace Rcpp;
-using namespace Eigen;
-
+#include "lslxOptimizer.h"
+#include "utility-function.h"
 
 // [[Rcpp::depends(RcppEigen)]]
-// define lslxOptimizer
-class lslxOptimizer {
-public:
-  std::string loss, algorithm, regularizer_type, searcher_type;
-  int iter_in_max, iter_out_max, iter_other_max, iter_armijo_max;
-  double tol_in, tol_out, tol_other;
-  double step_size, armijo;
-  double ridge_cov, ridge_hessian;
-  bool warm_start, positive_variance, enforce_cd;
-  double minimum_variance;
-  bool response, regularizer, searcher;
-
-  double lambda, delta, step;
-  int iter_out;
-  
-  int n_observation;
-  Rcpp::List  sample_proportion, saturated_cov, saturated_mean;
-  Rcpp::List  saturated_moment_acov;
-  
-  int n_response, n_factor, n_eta, n_moment, n_group, n_theta;
-  
-  Rcpp::CharacterVector theta_name;
-  Rcpp::LogicalVector theta_is_free, theta_is_pen, theta_is_diag;
-  Rcpp::IntegerVector theta_matrix_idx, theta_group_idx;
-  Rcpp::IntegerVector theta_left_idx, theta_right_idx, theta_flat_idx;
-  Rcpp::NumericVector theta_start, theta_value, theta_direction;
-  Rcpp::LogicalVector theta_is_est, theta_is_search; 
-  Rcpp::IntegerVector theta_is_est_idx, theta_is_search_idx;
-  
-  double baseline_loss_value;
-  int baseline_degrees_of_freedom;
-  
-  Eigen::MatrixXd identity_y, identity_eta, identity_theta;  
-  Eigen::SparseMatrix<double> identity_y2, duplication_y;
-  Eigen::SparseMatrix<double> elimination_y, duplication_eta, commutation_y;
-  
-  Rcpp::List alpha, beta, beta_pinv, phi;
-  Rcpp::List mu, sigma, sigma_inv;
-  Rcpp::List alpha_derivative, beta_derivative, phi_derivative;
-  
-  Rcpp::List model_jacobian;
-  Rcpp::List model_residual;
-  Rcpp::List residual_weight;
-  
-  double loss_value;
-  Eigen::MatrixXd loss_gradient;
-  Eigen::MatrixXd loss_gradient_diff;
-  Eigen::MatrixXd loss_expected_hessian;
-  Eigen::MatrixXd loss_observed_hessian;
-  Eigen::MatrixXd loss_bfgs_hessian;
-  Eigen::MatrixXd loss_bfgs_hessian_inv;
-  
-  double regularizer_value;
-  Eigen::MatrixXd regularizer_gradient;
-  
-  double objective_value;
-  Eigen::MatrixXd objective_gradient;
-  
-  double objective_gradient_abs_max, objective_hessian_convexity;
-  int n_iter_out, n_nonzero_coefficient;
-  double degrees_of_freedom, robust_degrees_of_freedom, scaling_factor;
-  
-  double aic, aic3, caic;
-  double bic, abic, hbic;
-  double raic, raic3, rcaic;
-  double rbic, rabic, rhbic;
-  double rmsea, srmr, cfi, nnfi;
-  
-  lslxOptimizer(Rcpp::List reduced_data,
-                Rcpp::List reduced_model,
-                Rcpp::List control,
-                Rcpp::List supplied_result);
-  
-  void set_regularizer(Rcpp::CharacterVector regularizer_type_, double lambda_, double delta_);
-  void set_searcher(Rcpp::CharacterVector searcher_type_, Rcpp::LogicalVector theta_is_search_);
-  void set_theta_value(Rcpp::NumericVector theta_value_);
-  
-  void update_coefficient_matrix();
-  void update_implied_moment();
-  void update_model_jacobian();
-  void update_model_residual();
-  void update_residual_weight();
-  void update_loss_value();
-  void update_loss_gradient();
-  void update_loss_gradient_direct();
-  void update_loss_expected_hessian();
-  void update_loss_observed_hessian();
-  void update_loss_bfgs_hessian();
-  void update_regularizer_value();
-  void update_regularizer_gradient();
-  void update_objective_value();
-  void update_objective_gradient();
-  void update_theta_direction();
-  void update_theta_value();
-  void update_theta_start();
-  
-  void update_coefficient();
-  void update_numerical_condition();
-  void update_information_criterion();
-  void update_fit_index();
-  
-  void complete_estimation();
-  void complete_searching();
-
-  Rcpp::NumericVector extract_numerical_condition();
-  Rcpp::NumericVector extract_information_criterion();
-  Rcpp::NumericVector extract_fit_index();
-  Rcpp::NumericVector extract_coefficient();
-  Eigen::MatrixXd slice_col(Eigen::MatrixXd x, Rcpp::IntegerVector col_idx);
-  Eigen::MatrixXd slice_both(Eigen::MatrixXd x, 
-                             Rcpp::IntegerVector row_idx, 
-                             Rcpp::IntegerVector col_idx);
-  Eigen::MatrixXd expand_both(Eigen::MatrixXd x,
-                              Rcpp::IntegerVector row_idx, 
-                              Rcpp::IntegerVector col_idx,
-                              int n_row,
-                              int n_col);
-  Eigen::MatrixXd vech(Eigen::MatrixXd x);
-  Eigen::SparseMatrix<double> create_commutation(int n);
-  Eigen::SparseMatrix<double> create_duplication(int n);
-  Rcpp::IntegerVector which(Rcpp::LogicalVector x);
-  int sign(double x);
-};
-
 // define initialization method
 lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
                              Rcpp::List reduced_model,
@@ -163,6 +32,7 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
   positive_variance = Rcpp::as<bool>(control["positive_variance"]);
   enforce_cd = Rcpp::as<bool>(control["enforce_cd"]);
   response = Rcpp::as<bool>(control["response"]);
+  continuous = Rcpp::as<bool>(control["continuous"]);
   regularizer = Rcpp::as<bool>(control["regularizer"]);
   searcher = Rcpp::as<bool>(control["searcher"]);
   lambda = 0;
@@ -175,7 +45,10 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
   n_eta = Rcpp::as<int>(reduced_model["n_eta"]);
   n_group = Rcpp::as<int>(reduced_model["n_group"]);
   n_moment = Rcpp::as<int>(reduced_model["n_moment"]);
+  n_moment_1 = Rcpp::as<int>(reduced_model["n_moment_1"]);
+  n_moment_2 = Rcpp::as<int>(reduced_model["n_moment_2"]);
   n_theta = Rcpp::as<int>(reduced_model["n_theta"]);
+  n_threshold = Rcpp::as<int>(reduced_model["n_threshold"]);
   
   theta_name = Rcpp::as<CharacterVector>(reduced_model["theta_name"]);
   theta_is_free = Rcpp::as<LogicalVector>(reduced_model["theta_is_free"]);
@@ -187,20 +60,35 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
   theta_left_idx = Rcpp::as<IntegerVector>(reduced_model["theta_left_idx"]) - 1;
   theta_right_idx = Rcpp::as<IntegerVector>(reduced_model["theta_right_idx"]) - 1;
   theta_flat_idx = Rcpp::as<IntegerVector>(reduced_model["theta_flat_idx"]) - 1;
+  
   if (regularizer) {
     theta_is_est = (theta_is_free | theta_is_pen);
     theta_is_est_idx = which(theta_is_est);
-  } else {}
-  if (searcher) {
+  } else if (searcher) {
     if (searcher_type == "forward") {
       theta_is_est = Rcpp::clone(theta_is_free);
     } else if (searcher_type == "backward") {
       theta_is_est = (theta_is_free | theta_is_pen);
-    } else {}
+    } else {
+    }
     theta_is_est_idx = which(theta_is_est);
     theta_is_search = Rcpp::clone(theta_is_pen);
     theta_is_search_idx = which(theta_is_search);
-  } else {}
+  } else {
+    theta_is_est = theta_is_free;
+    theta_is_est_idx = which(theta_is_est);
+  }
+  
+  idx_reference = Rcpp::as<int>(reduced_model["idx_reference"]) - 1;
+  if (!continuous) {
+    idx_ordered = Rcpp::as<IntegerVector>(reduced_model["idx_ordered"]) - 1;
+    idx_numeric = Rcpp::as<IntegerVector>(reduced_model["idx_numeric"]) - 1;
+    idx_gamma = Rcpp::as<IntegerVector>(reduced_model["idx_gamma"]) - 1;
+    idx_mu = Rcpp::as<IntegerVector>(reduced_model["idx_mu"]) - 1;
+    idx_sigma = Rcpp::as<IntegerVector>(reduced_model["idx_sigma"]) - 1;
+    idx_diag = Rcpp::as<IntegerVector>(reduced_model["idx_diag"]) - 1;
+    idx_nondiag = Rcpp::as<IntegerVector>(reduced_model["idx_nondiag"]) - 1;
+  }
   
   theta_start = Rcpp::clone(Rcpp::as<NumericVector>(supplied_result["fitted_start"]));
   theta_value = Rcpp::clone(Rcpp::as<NumericVector>(supplied_result["fitted_start"]));
@@ -219,8 +107,8 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
   duplication_y  = create_duplication(n_response);
   elimination_y  = duplication_y.transpose() * duplication_y;
   Eigen::SparseLU<SparseMatrix<double> > solver;
-  Eigen::SparseMatrix<double> identity_n_cov(n_moment - n_response, 
-                                             n_moment - n_response);
+  Eigen::SparseMatrix<double> identity_n_cov(n_response * (n_response + 1) / 2, 
+                                             n_response * (n_response + 1) / 2);
   identity_n_cov.setIdentity();
   solver.compute(elimination_y);
   elimination_y = solver.solve(identity_n_cov) * duplication_y.transpose();  
@@ -229,6 +117,10 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
   
   n_observation = Rcpp::as<int>(reduced_data["n_observation"]);
   sample_proportion = Rcpp::as<List>(reduced_data["sample_proportion"]);
+  if (!continuous) {
+    saturated_threshold = Rcpp::as<List>(reduced_data["saturated_threshold"]);
+    saturated_moment = Rcpp::as<List>(reduced_data["saturated_moment"]);
+  }
   saturated_cov = Rcpp::as<List>(reduced_data["saturated_cov"]);
   saturated_mean = Rcpp::as<List>(reduced_data["saturated_mean"]);
   saturated_moment_acov = Rcpp::as<List>(reduced_data["saturated_moment_acov"]);
@@ -236,18 +128,32 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
     residual_weight = Rcpp::as<List>(control["weight_matrix"]);
   }
   
-  int i;
+  int i, j, k;
   for (i = 0; i < n_group; i ++) {
     alpha.push_back(Eigen::MatrixXd::Zero(n_eta, 1));
     beta.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
     beta_pinv.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
+    if (!continuous) {
+      Rcpp::List gamma_i = Rcpp::clone(Rcpp::as<List>(saturated_threshold[i]));
+      for (j = 0; j < n_response; j ++) {
+        Rcpp::NumericVector gamma_ij = Rcpp::as<NumericVector>(gamma_i[j]);
+        if (gamma_ij.size() > 0) {
+          for (k = 0; k < gamma_ij.size(); k ++) {
+            gamma_ij[k] = 0.0;
+          }
+        }
+      }
+      gamma.push_back(gamma_i);
+    }
     phi.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
+    psi.push_back(Eigen::MatrixXd::Ones(n_response, 1));
     alpha_derivative.push_back(Eigen::MatrixXd::Zero(n_eta, 1));
     beta_derivative.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
     phi_derivative.push_back(Eigen::MatrixXd::Zero(n_eta, n_eta));
     mu.push_back(Eigen::MatrixXd::Zero(n_response, 1));
     sigma.push_back(Eigen::MatrixXd::Zero(n_response, n_response));
     sigma_inv.push_back(Eigen::MatrixXd::Zero(n_response, n_response));
+    implied_moment.push_back(Eigen::MatrixXd::Zero(n_moment, 1));
     model_jacobian.push_back(Eigen::MatrixXd::Zero(n_moment, n_theta));
     model_residual.push_back(Eigen::MatrixXd::Zero(n_moment, 1));
     if (loss == "ml") {
@@ -311,7 +217,7 @@ void lslxOptimizer::update_coefficient_matrix() {
   double theta_value_ijk;
   
   int i, j, k;
-  for (i = 1; i <= 3; i ++) {
+  for (i = 0; i <= 4; i ++) {
     if (Rcpp::is_true(Rcpp::any(0 == theta_group_idx_unique))) {
       theta_left_idx_i0 =
         theta_left_idx[(theta_matrix_idx == i) &
@@ -337,37 +243,62 @@ void lslxOptimizer::update_coefficient_matrix() {
           (theta_group_idx == j)];
         
         switch(i) {
-        case 1: {
-            Eigen::Map<MatrixXd> alpha_i(Rcpp::as< Eigen::Map <MatrixXd> >(alpha[j - 1]));
+        case 0: {
+            if (!continuous) {
+            Rcpp::List gamma_j = Rcpp::as<List>(gamma[j - 1]);
             for (k = 0; k < theta_value_ij.size(); k ++) {
               theta_left_idx_ijk = theta_left_idx_ij[k];
               theta_right_idx_ijk = theta_right_idx_ij[k];
               theta_value_ijk = theta_value_ij[k];
-              alpha_i(theta_left_idx_ijk, theta_right_idx_ijk) = theta_value_ijk;
+              Rcpp::NumericVector gamma_jk = Rcpp::as<NumericVector>(gamma_j[theta_left_idx_ijk]);
+              gamma_jk[theta_right_idx_ijk] = theta_value_ijk;
             }
+          }
             break;
           }
+        case 1: {
+          Eigen::Map<MatrixXd> alpha_j(Rcpp::as< Eigen::Map <MatrixXd> >(alpha[j - 1]));
+          for (k = 0; k < theta_value_ij.size(); k ++) {
+            theta_left_idx_ijk = theta_left_idx_ij[k];
+            theta_right_idx_ijk = theta_right_idx_ij[k];
+            theta_value_ijk = theta_value_ij[k];
+            alpha_j(theta_left_idx_ijk, theta_right_idx_ijk) = theta_value_ijk;
+          }
+          break;
+        }
         case 2: {
-          Eigen::Map<MatrixXd> beta_i(Rcpp::as< Eigen::Map<MatrixXd> >(beta[j - 1]));
+          Eigen::Map<MatrixXd> beta_j(Rcpp::as< Eigen::Map<MatrixXd> >(beta[j - 1]));
           int k;
           for (k = 0; k < theta_value_ij.size(); k ++) {
             theta_left_idx_ijk = theta_left_idx_ij[k];
             theta_right_idx_ijk = theta_right_idx_ij[k];
             theta_value_ijk = theta_value_ij[k];
-            beta_i(theta_left_idx_ijk, theta_right_idx_ijk) = theta_value_ijk;
+            beta_j(theta_left_idx_ijk, theta_right_idx_ijk) = theta_value_ijk;
           }
           break;
         }
         case 3: {
-          Eigen::Map<MatrixXd> phi_i(Rcpp::as< Eigen::Map <MatrixXd> >(phi[j - 1]));
+          Eigen::Map<MatrixXd> phi_j(Rcpp::as< Eigen::Map <MatrixXd> >(phi[j - 1]));
           int k;
           for (k = 0; k < theta_value_ij.size(); k ++) {
             theta_left_idx_ijk = theta_left_idx_ij[k];
             theta_right_idx_ijk = theta_right_idx_ij[k];
             theta_value_ijk = theta_value_ij[k];
-            phi_i(theta_left_idx_ijk, theta_right_idx_ijk) = theta_value_ijk;
-            phi_i(theta_right_idx_ijk, theta_left_idx_ijk) = theta_value_ijk;
+            phi_j(theta_left_idx_ijk, theta_right_idx_ijk) = theta_value_ijk;
+            phi_j(theta_right_idx_ijk, theta_left_idx_ijk) = theta_value_ijk;
           }
+          break;
+        }
+        case 4: {
+          if (!continuous) {
+          Eigen::Map<MatrixXd> psi_j(Rcpp::as< Eigen::Map <MatrixXd> >(psi[j - 1]));
+          int k;
+          for (k = 0; k < theta_value_ij.size(); k ++) {
+            theta_left_idx_ijk = theta_left_idx_ij[k];
+            theta_value_ijk = theta_value_ij[k];
+            psi_j(theta_left_idx_ijk, 0) = theta_value_ijk;
+          } 
+        }
           break;
         }
         }
@@ -375,52 +306,86 @@ void lslxOptimizer::update_coefficient_matrix() {
       
       if (Rcpp::is_true(Rcpp::any(0 == theta_group_idx_unique))) {
         switch(i) {
-        case 1: {
-        Eigen::Map<MatrixXd> alpha_i(Rcpp::as< Eigen::Map <MatrixXd> >(alpha[j - 1]));
+        case 0: {
+        if (!continuous) {
+        Rcpp::List gamma_j = Rcpp::as<List>(gamma[j - 1]);
         for (k = 0; k < theta_value_i0.size(); k ++) {
           theta_left_idx_i0k = theta_left_idx_i0[k];
           theta_right_idx_i0k = theta_right_idx_i0[k];
           theta_value_i0k = theta_value_i0[k];
+          Rcpp::NumericVector gamma_jk = Rcpp::as<NumericVector>(gamma_j[theta_left_idx_i0k]);
           if (Rcpp::is_true(Rcpp::any(j == theta_group_idx_unique))) {
-            alpha_i(theta_left_idx_i0k, theta_right_idx_i0k) =
-              alpha_i(theta_left_idx_i0k, theta_right_idx_i0k) + theta_value_i0k;
+            gamma_jk[theta_right_idx_i0k] =
+              gamma_jk[theta_right_idx_i0k] + theta_value_i0k;
           } else {
-            alpha_i(theta_left_idx_i0k, theta_right_idx_i0k) = theta_value_i0k;
+            gamma_jk[theta_right_idx_i0k] = theta_value_i0k;
           }
         }
+      }
         break;
       }
-        case 2: {
-          Eigen::Map<MatrixXd> beta_i(Rcpp::as< Eigen::Map <MatrixXd> >(beta[j - 1]));
+        case 1: {
+          Eigen::Map<MatrixXd> alpha_j(Rcpp::as< Eigen::Map <MatrixXd> >(alpha[j - 1]));
           for (k = 0; k < theta_value_i0.size(); k ++) {
             theta_left_idx_i0k = theta_left_idx_i0[k];
             theta_right_idx_i0k = theta_right_idx_i0[k];
             theta_value_i0k = theta_value_i0[k];
             if (Rcpp::is_true(Rcpp::any(j == theta_group_idx_unique))) {
-              beta_i(theta_left_idx_i0k, theta_right_idx_i0k) =
-                beta_i(theta_left_idx_i0k, theta_right_idx_i0k) + theta_value_i0k;
+              alpha_j(theta_left_idx_i0k, theta_right_idx_i0k) =
+                alpha_j(theta_left_idx_i0k, theta_right_idx_i0k) + theta_value_i0k;
             } else {
-              beta_i(theta_left_idx_i0k, theta_right_idx_i0k) = theta_value_i0k;
+              alpha_j(theta_left_idx_i0k, theta_right_idx_i0k) = theta_value_i0k;
+            }
+          }
+          break;
+        }
+        case 2: {
+          Eigen::Map<MatrixXd> beta_j(Rcpp::as< Eigen::Map <MatrixXd> >(beta[j - 1]));
+          for (k = 0; k < theta_value_i0.size(); k ++) {
+            theta_left_idx_i0k = theta_left_idx_i0[k];
+            theta_right_idx_i0k = theta_right_idx_i0[k];
+            theta_value_i0k = theta_value_i0[k];
+            if (Rcpp::is_true(Rcpp::any(j == theta_group_idx_unique))) {
+              beta_j(theta_left_idx_i0k, theta_right_idx_i0k) =
+                beta_j(theta_left_idx_i0k, theta_right_idx_i0k) + theta_value_i0k;
+            } else {
+              beta_j(theta_left_idx_i0k, theta_right_idx_i0k) = theta_value_i0k;
             }
           }
           break;
         }
         case 3: {
-          Eigen::Map<MatrixXd> phi_i(Rcpp::as< Eigen::Map <MatrixXd> >(phi[j - 1]));
+          Eigen::Map<MatrixXd> phi_j(Rcpp::as< Eigen::Map <MatrixXd> >(phi[j - 1]));
           for (k = 0; k < theta_value_i0.size(); k ++) {
             theta_left_idx_i0k = theta_left_idx_i0[k];
             theta_right_idx_i0k = theta_right_idx_i0[k];
             theta_value_i0k = theta_value_i0[k];
             if (Rcpp::is_true(Rcpp::any(j == theta_group_idx_unique))) {
-              phi_i(theta_left_idx_i0k, theta_right_idx_i0k) =
-                phi_i(theta_left_idx_i0k, theta_right_idx_i0k) + theta_value_i0k;
-              phi_i(theta_right_idx_i0k, theta_left_idx_i0k) =
-                phi_i(theta_left_idx_i0k, theta_right_idx_i0k);
+              phi_j(theta_left_idx_i0k, theta_right_idx_i0k) =
+                phi_j(theta_left_idx_i0k, theta_right_idx_i0k) + theta_value_i0k;
+              phi_j(theta_right_idx_i0k, theta_left_idx_i0k) =
+                phi_j(theta_left_idx_i0k, theta_right_idx_i0k);
             } else {
-              phi_i(theta_left_idx_i0k, theta_right_idx_i0k) = theta_value_i0k;
-              phi_i(theta_right_idx_i0k, theta_left_idx_i0k) = theta_value_i0k;
+              phi_j(theta_left_idx_i0k, theta_right_idx_i0k) = theta_value_i0k;
+              phi_j(theta_right_idx_i0k, theta_left_idx_i0k) = theta_value_i0k;
             }
           }
+          break;
+        }
+        case 4: {
+          if (!continuous) {
+          Eigen::Map<MatrixXd> psi_j(Rcpp::as< Eigen::Map <MatrixXd> >(psi[j - 1]));
+          for (k = 0; k < theta_value_i0.size(); k ++) {
+            theta_left_idx_i0k = theta_left_idx_i0[k];
+            theta_value_i0k = theta_value_i0[k];
+            if (Rcpp::is_true(Rcpp::any(j == theta_group_idx_unique))) {
+              psi_j(theta_left_idx_i0k, 0) =
+                psi_j(theta_left_idx_i0k, 0) + theta_value_i0k;
+            } else {
+              psi_j(theta_left_idx_i0k, 0) = theta_value_i0k;
+            }
+          }
+        }
           break;
         }
         }
@@ -431,7 +396,7 @@ void lslxOptimizer::update_coefficient_matrix() {
 
 // method for updating model implied moment
 void lslxOptimizer::update_implied_moment() {
-  int i;
+  int i, j, k;
   for (i = 0; i < n_group; i++) {
     Eigen::Map<Eigen::MatrixXd> alpha_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(alpha[i]));
     Eigen::Map<Eigen::MatrixXd> beta_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta[i]));
@@ -441,90 +406,285 @@ void lslxOptimizer::update_implied_moment() {
     Eigen::Map<MatrixXd> mu_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(mu[i]));  
     Eigen::Map<MatrixXd> sigma_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(sigma[i]));
     Eigen::Map<MatrixXd> sigma_inv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(sigma_inv[i]));
+    Eigen::Map<MatrixXd> implied_moment_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(implied_moment[i]));
     
     beta_pinv_i = (identity_eta - beta_i).inverse();
     mu_i =  beta_pinv_i.topRows(n_response) * alpha_i;
     sigma_i =  beta_pinv_i.topRows(n_response) * phi_i * beta_pinv_i.topRows(n_response).transpose();
     sigma_inv_i = sigma_i.inverse();
+    if (!continuous) {
+      Rcpp::List gamma_i = Rcpp::as<List>(gamma[i]);
+      Eigen::Map<Eigen::MatrixXd> psi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi[i]));
+      Eigen::MatrixXd sigma_scaled_i;
+      int l = 0;
+      for (j = 0; j < n_response; j ++) {
+        Rcpp::NumericVector gamma_ij = Rcpp::as<NumericVector>(gamma_i[j]);
+        if (gamma_ij.size() > 0) {
+          for (k = 0; k < gamma_ij.size(); k ++) {
+            implied_moment_i(l, 0) = psi_i(j ,0) * (gamma_ij[k] - mu_i(j, 0));
+            l = l + 1;
+          }
+        } else {
+          implied_moment_i(l, 0) = - psi_i(j ,0) * mu_i(j, 0);
+          l = l + 1;
+        }
+      }
+      sigma_scaled_i = (sigma_i.array() * (psi_i * psi_i.transpose()).array()).matrix();
+      if (idx_numeric.size() > 0) {
+        for (j = 0; j < idx_numeric.size(); j ++) {
+          implied_moment_i(l, 0) = sigma_scaled_i(idx_numeric[j], idx_numeric[j]);
+          l = l + 1;
+        }
+      }
+      implied_moment_i.block(l, 0, 
+                             n_response * (n_response - 1) / 2, 1) = vech_small(sigma_scaled_i);
+    } else {
+      implied_moment_i.block(0, 0, 
+                             n_response, 1) = mu_i;
+      implied_moment_i.block(n_response, 0, 
+                             n_response * (n_response + 1) / 2, 1) = vech(sigma_i);
+    }
   }
 }
 
 // method for updating model moment jacobian
 void lslxOptimizer::update_model_jacobian() {
   Rcpp::IntegerVector theta_group_idx_unique = Rcpp::sort_unique(theta_group_idx);
-  Rcpp::IntegerVector theta_flat_idx_j;
+  Rcpp::IntegerVector theta_left_idx_j, theta_flat_idx_j;
   Rcpp::IntegerVector theta_matrix_idx_j;
-  Rcpp::IntegerVector theta_flat_idx_jk;
+  Rcpp::IntegerVector theta_left_idx_jk, theta_flat_idx_jk;
   int n_theta_sum, n_theta_j, n_theta_jk;
   
-  int i, j, k;
-  for (i = 0; i < n_group; i++) {
-    n_theta_sum = 0;
-    Eigen::Map<Eigen::MatrixXd> alpha_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(alpha[i]));
-    Eigen::Map<Eigen::MatrixXd> beta_pinv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_pinv[i]));
-    Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
-    Eigen::Map<Eigen::MatrixXd> model_jacobian_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(model_jacobian[i]));
-    
-    for (j = 0; j < theta_group_idx_unique.size(); j++) {
-      n_theta_j = 0;
-      theta_flat_idx_j = theta_flat_idx[(theta_group_idx == theta_group_idx_unique[j])];
-      theta_matrix_idx_j = theta_matrix_idx[(theta_group_idx == theta_group_idx_unique[j])];
+  int i, j, k, l, m, n;
+  if (continuous) {
+    for (i = 0; i < n_group; i++) {
+      n_theta_sum = 0;
+      Eigen::Map<Eigen::MatrixXd> alpha_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(alpha[i]));
+      Eigen::Map<Eigen::MatrixXd> beta_pinv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_pinv[i]));
+      Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
+      Eigen::Map<Eigen::MatrixXd> model_jacobian_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(model_jacobian[i]));
       
-      for (k = 1; k <= 3; k++) {
-        theta_flat_idx_jk = theta_flat_idx_j[theta_matrix_idx_j == k];
-        n_theta_jk = theta_flat_idx_jk.size();
+      for (j = 0; j < theta_group_idx_unique.size(); j++) {
+        n_theta_j = 0;
+        theta_flat_idx_j = theta_flat_idx[(theta_group_idx == theta_group_idx_unique[j])];
+        theta_matrix_idx_j = theta_matrix_idx[(theta_group_idx == theta_group_idx_unique[j])];
         
-        if ((theta_group_idx_unique[j] == 0) | ((theta_group_idx_unique[j] - 1) == i)) {
-          if (n_theta_jk > 0) {
-            switch(k) {
-            case 1: {
-          model_jacobian_i.block(
-            0, n_theta_sum + n_theta_j,
-            n_response, n_theta_jk) = 
-              slice_col(beta_pinv_i.topRows(n_response), theta_flat_idx_jk);
-          break;
-        }
-            case 2: {
-              model_jacobian_i.block(
-                0, n_theta_sum + n_theta_j,
-                n_response, n_theta_jk) = 
-                  slice_col(
-                    kroneckerProduct(
-                      (alpha_i.transpose() * beta_pinv_i.transpose()),
-                      beta_pinv_i.topRows(n_response)),
-                      theta_flat_idx_jk);
-              
-              model_jacobian_i.block(
-                n_response, n_theta_sum + n_theta_j,
-                (n_moment - n_response), n_theta_jk) = 
-                  slice_col(
-                    ((elimination_y * (commutation_y + identity_y2)) * 
+        for (k = 1; k <= 3; k++) {
+          theta_flat_idx_jk = theta_flat_idx_j[theta_matrix_idx_j == k];
+          n_theta_jk = theta_flat_idx_jk.size();
+          
+          if ((theta_group_idx_unique[j] == 0) | ((theta_group_idx_unique[j] - 1) == i)) {
+            if (n_theta_jk > 0) {
+              switch(k) {
+              case 1: {
+            model_jacobian_i.block(
+              0, n_theta_sum + n_theta_j,
+              n_response, n_theta_jk) = 
+                slice_col(beta_pinv_i.topRows(n_response), theta_flat_idx_jk);
+            break;
+          }
+              case 2: {
+                model_jacobian_i.block(
+                  0, n_theta_sum + n_theta_j,
+                  n_response, n_theta_jk) = 
+                    slice_col(
                       kroneckerProduct(
-                        (beta_pinv_i.topRows(n_response) * phi_i * beta_pinv_i.transpose()), 
-                        beta_pinv_i.topRows(n_response))),
+                        (alpha_i.transpose() * beta_pinv_i.transpose()),
+                        beta_pinv_i.topRows(n_response)),
                         theta_flat_idx_jk);
-              break;
-            }
-            case 3: {
-              model_jacobian_i.block(
-                n_response, n_theta_sum + n_theta_j,
-                (n_moment - n_response), n_theta_jk) = 
-                  slice_col(
-                    (elimination_y * 
-                      kroneckerProduct(
-                        beta_pinv_i.topRows(n_response), 
-                        beta_pinv_i.topRows(n_response)) * duplication_eta),
-                        theta_flat_idx_jk);
-              break;
-            }
+                
+                model_jacobian_i.block(
+                  n_response, n_theta_sum + n_theta_j,
+                  (n_moment - n_response), n_theta_jk) = 
+                    slice_col(
+                      ((elimination_y * (commutation_y + identity_y2)) * 
+                        kroneckerProduct(
+                          (beta_pinv_i.topRows(n_response) * phi_i * beta_pinv_i.transpose()), 
+                          beta_pinv_i.topRows(n_response))),
+                          theta_flat_idx_jk);
+                break;
+              }
+              case 3: {
+                model_jacobian_i.block(
+                  n_response, n_theta_sum + n_theta_j,
+                  (n_moment - n_response), n_theta_jk) = 
+                    slice_col(
+                      (elimination_y * 
+                        kroneckerProduct(
+                          beta_pinv_i.topRows(n_response), 
+                          beta_pinv_i.topRows(n_response)) * duplication_eta),
+                          theta_flat_idx_jk);
+                break;
+              }
+              }
             }
           }
-        }
-        n_theta_j = n_theta_j + n_theta_jk;
-      } 
-      n_theta_sum = n_theta_sum + n_theta_j;
+          n_theta_j = n_theta_j + n_theta_jk;
+        } 
+        n_theta_sum = n_theta_sum + n_theta_j;
+      }
+    }
+  } else {
+    MatrixXd elimination_y_dense = MatrixXd(elimination_y);
+    for (i = 0; i < n_group; i++) {
+      n_theta_sum = 0;
+      Eigen::Map<Eigen::MatrixXd> alpha_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(alpha[i]));
+      Eigen::Map<Eigen::MatrixXd> beta_pinv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_pinv[i]));
+      Rcpp::List gamma_i = Rcpp::as<List>(gamma[i]);
+      Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
+      Eigen::Map<Eigen::MatrixXd> psi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi[i]));
+      Eigen::Map<Eigen::MatrixXd> sigma_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(sigma[i]));
+      Eigen::Map<Eigen::MatrixXd> mu_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(mu[i]));
+      Eigen::Map<Eigen::MatrixXd> model_jacobian_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(model_jacobian[i]));
+      Eigen::MatrixXd alpha_derivative_i, beta_derivative_i, gamma_derivative_i, psi_derivative_i;
+      Eigen::MatrixXd psi_expand_i = slice_row(psi_i, idx_mu);
+      VectorXd psi_vec_i(Map<VectorXd>(psi_i.data(), psi_i.rows()));
+      VectorXd psi_vec_expand_i(Map<VectorXd>(psi_expand_i.data(), psi_expand_i.rows()));
+      
+      for (j = 0; j < theta_group_idx_unique.size(); j++) {
+        n_theta_j = 0;
+        theta_left_idx_j = theta_left_idx[(theta_group_idx == theta_group_idx_unique[j])];
+        theta_flat_idx_j = theta_flat_idx[(theta_group_idx == theta_group_idx_unique[j])];
+        theta_matrix_idx_j = theta_matrix_idx[(theta_group_idx == theta_group_idx_unique[j])];
+        for (k = 0; k <= 4; k++) {
+          theta_left_idx_jk = theta_left_idx_j[theta_matrix_idx_j == k];
+          theta_flat_idx_jk = theta_flat_idx_j[theta_matrix_idx_j == k];
+          n_theta_jk = theta_flat_idx_jk.size();
+          if ((theta_group_idx_unique[j] == 0) | ((theta_group_idx_unique[j] - 1) == i)) {
+            if (n_theta_jk > 0) {
+              switch(k) {
+              case 0: {
+            gamma_derivative_i = Eigen::MatrixXd::Zero(n_moment_1, n_threshold);
+            for (l = 0; l < idx_gamma.size(); l++) {
+              if (idx_gamma[l] >= 0) {
+                gamma_derivative_i(l, idx_gamma[l]) = 1;
+              }
+            }
+            gamma_derivative_i = (gamma_derivative_i.array().colwise() * 
+              psi_vec_expand_i.array()).matrix();
+            model_jacobian_i.block(
+              0, n_theta_sum + n_theta_j,
+              n_moment_1, n_theta_jk) = 
+                slice_col(gamma_derivative_i, theta_flat_idx_jk);
+            break;
+          }
+              case 1: {
+                alpha_derivative_i = -beta_pinv_i.topRows(n_response);
+                alpha_derivative_i = slice_row(alpha_derivative_i, idx_mu);
+                alpha_derivative_i = (alpha_derivative_i.array().colwise() * 
+                  psi_vec_expand_i.array()).matrix();
+                model_jacobian_i.block(
+                  0, n_theta_sum + n_theta_j,
+                  n_moment_1, n_theta_jk) = 
+                    slice_col(alpha_derivative_i, theta_flat_idx_jk);
+                break;
+              }
+              case 2: {
+                beta_derivative_i = -kroneckerProduct(
+                  (alpha_i.transpose() * beta_pinv_i.transpose()),
+                  beta_pinv_i.topRows(n_response));
+                beta_derivative_i = slice_row(beta_derivative_i, idx_mu);
+                beta_derivative_i = (beta_derivative_i.array().colwise() * 
+                  psi_vec_expand_i.array()).matrix();
+                model_jacobian_i.block(
+                  0, n_theta_sum + n_theta_j,
+                  n_moment_1, n_theta_jk) = 
+                    slice_col(beta_derivative_i, theta_flat_idx_jk);
+                model_jacobian_i.block(
+                  n_moment_1, n_theta_sum + n_theta_j,
+                  n_moment_2, n_theta_jk) = 
+                    slice_both(
+                      ((elimination_y * (commutation_y + identity_y2)) * 
+                        kroneckerProduct(
+                          (((beta_pinv_i.topRows(n_response)).array().colwise() * 
+                            psi_vec_i.array()).matrix() * 
+                            phi_i * beta_pinv_i.transpose()), 
+                            ((beta_pinv_i.topRows(n_response)).array().colwise() * psi_vec_i.array()).matrix())),
+                          idx_sigma,
+                          theta_flat_idx_jk);
+                break;
+              }
+              case 3: {
+                model_jacobian_i.block(
+                  n_moment_1, n_theta_sum + n_theta_j,
+                  n_moment_2, n_theta_jk) = 
+                    slice_both(
+                      (elimination_y * 
+                        kroneckerProduct(
+                          ((beta_pinv_i.topRows(n_response)).array().colwise() * 
+                            psi_vec_i.array()).matrix(), 
+                          ((beta_pinv_i.topRows(n_response)).array().colwise() * 
+                            psi_vec_i.array()).matrix()) * duplication_eta),
+                          idx_sigma,
+                          theta_flat_idx_jk);
+                break;
+              }
+              case 4: {
+                n = 0;
+                psi_derivative_i = Eigen::MatrixXd::Zero(n_moment_1, n_response);
+                for (l = 0; l < n_response; l ++) {
+                  Rcpp::NumericVector gamma_il = Rcpp::as<NumericVector>(gamma_i[l]);
+                  if (gamma_il.size() > 0) {
+                    for (m = 0; m < gamma_il.size(); m ++) {
+                      psi_derivative_i(n, l) = (gamma_il[m] - mu_i(l, 0));
+                      n = n + 1;
+                    }
+                  } else {
+                    psi_derivative_i(n, l) = - mu_i(l, 0);
+                    n = n + 1;
+                  }
+                }
+                model_jacobian_i.block(
+                  0, n_theta_sum + n_theta_j,
+                  n_moment_1, n_theta_jk) = 
+                    slice_col(psi_derivative_i, theta_left_idx_jk);
+                psi_derivative_i = (elimination_y_dense * 
+                  (kroneckerProduct(
+                      ((sigma_i).array().colwise() * 
+                        psi_vec_i.array()).matrix(),
+                        identity_y) + 
+                          kroneckerProduct(
+                            identity_y,
+                            ((sigma_i).array().colwise() * 
+                              psi_vec_i.array()).matrix())) * duplication_y);
+                model_jacobian_i.block(
+                  n_moment_1, n_theta_sum + n_theta_j,
+                  n_moment_2, n_theta_jk) = 
+                    slice_both(psi_derivative_i,
+                               idx_sigma,
+                               theta_flat_idx_jk);
+                break;
+              }
+              }
+            }
+          }
+          n_theta_j = n_theta_j + n_theta_jk;
+        } 
+        n_theta_sum = n_theta_sum + n_theta_j;
+      }
     }
   }
+}
+
+
+// method for updating model moment jacobian by numerical differentiation
+void lslxOptimizer::update_model_jacobian_nd() {
+  Rcpp::List implied_moment_0 = Rcpp::clone(implied_moment);
+  int i, j;
+  for (i = 0; i < n_theta; i++) {
+    theta_value = Rcpp::clone(theta_start);
+    theta_value[i] = theta_value[i] + tol_other;
+    update_coefficient_matrix();
+    update_implied_moment();
+    for (j = 0; j < n_group; j++) {
+      Eigen::Map<Eigen::MatrixXd> model_jacobian_j(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(model_jacobian[j]));
+      Eigen::Map<MatrixXd> implied_moment_j(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(implied_moment[j]));
+      Eigen::Map<MatrixXd> implied_moment_0j(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(implied_moment_0[j]));
+      model_jacobian_j.col(i) = (implied_moment_j - implied_moment_0j) / tol_other;
+    }
+  }
+  theta_value = Rcpp::clone(theta_start);
+  implied_moment = Rcpp::clone(implied_moment_0);
 }
 
 
@@ -537,9 +697,9 @@ void lslxOptimizer::update_model_residual() {
     Eigen::Map<Eigen::MatrixXd> mu_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(mu[i]));
     Eigen::Map<Eigen::MatrixXd> sigma_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(sigma[i]));
     Eigen::Map<Eigen::MatrixXd> model_residual_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(model_residual[i]));
-    model_residual_i.block(
-      0, 0, n_response, 1) = (saturated_mean_i - mu_i);
     if (loss == "ml") {
+      model_residual_i.block(
+        0, 0, n_response, 1) = (saturated_mean_i - mu_i);
       model_residual_i.block(
         n_response, 0, (n_moment - n_response), 1) = 
           vech(saturated_cov_i + saturated_mean_i * saturated_mean_i.transpose() - 
@@ -547,9 +707,18 @@ void lslxOptimizer::update_model_residual() {
           saturated_mean_i * mu_i.transpose() + 
           mu_i * mu_i.transpose() - sigma_i);
     } else if ((loss == "uls")|(loss == "dwls")|(loss == "wls")) {
-      model_residual_i.block(
-        n_response, 0, (n_moment - n_response), 1) = 
-          vech(saturated_cov_i - sigma_i);
+      if (!continuous) {
+        Eigen::Map<MatrixXd> implied_moment_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(implied_moment[i]));
+        Eigen::Map<MatrixXd> saturated_moment_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(saturated_moment[i]));
+        model_residual_i.block(
+          0, 0, n_moment, 1) = (saturated_moment_i - implied_moment_i);
+      } else {
+        model_residual_i.block(
+          0, 0, n_response, 1) = (saturated_mean_i - mu_i);
+        model_residual_i.block(
+          n_response, 0, (n_moment - n_response), 1) = 
+            vech(saturated_cov_i - sigma_i);
+      }
     } else {
       
     }
@@ -683,6 +852,23 @@ void lslxOptimizer::update_loss_gradient() {
     Eigen::Map<Eigen::MatrixXd> model_residual_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(model_residual[i]));
     Eigen::Map<Eigen::MatrixXd> residual_weight_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(residual_weight[i]));
     loss_gradient += - 2 * model_jacobian_i.transpose() * residual_weight_i * model_residual_i;
+  }
+  loss_gradient_diff = loss_gradient - loss_gradient_diff;
+}
+
+// method for updating loss function gradient by numerical differentiation
+void lslxOptimizer::update_loss_gradient_nd() {
+  double loss_value_0 = loss_value;
+  loss_gradient_diff = loss_gradient;
+  loss_gradient = Eigen::MatrixXd::Zero(n_theta, 1);
+  int i;
+  for (i = 0; i < n_theta; i++) {
+    theta_value = Rcpp::clone(theta_start);
+    theta_value[i] = theta_value[i] + tol_other;
+    update_coefficient_matrix();
+    update_implied_moment();
+    update_loss_value();
+    loss_gradient(i, 0) = (loss_value - loss_value_0) / tol_other;
   }
   loss_gradient_diff = loss_gradient - loss_gradient_diff;
 }
@@ -952,6 +1138,8 @@ void lslxOptimizer::update_theta_direction() {
   }
 }
 
+
+
 // method for updating thata value
 void lslxOptimizer::update_theta_value() {
   Rcpp::IntegerVector theta_group_idx_unique = Rcpp::sort_unique(theta_group_idx);
@@ -988,6 +1176,60 @@ void lslxOptimizer::update_theta_value() {
       break;
     }
   }
+}
+
+// method for updating nuisance parameters
+void lslxOptimizer::update_nuisance() {
+  int i, j;
+  if (!continuous) {
+    Eigen::MatrixXd p_i, b_i, b_ij, c_i;
+    for (i = 0; i < n_group; i++) {
+      Eigen::Map<Eigen::MatrixXd> beta_pinv_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(beta_pinv[i]));
+      Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
+      Eigen::Map<Eigen::MatrixXd> psi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(psi[i]));
+      p_i = vec(phi_i);
+      b_i = Eigen::MatrixXd::Zero(n_response, n_eta * n_eta);
+      for (j = 0; j < n_response; j++) {
+        b_ij = beta_pinv_i.row(j);
+        b_i.row(j) = vec(b_ij.transpose() * b_ij).transpose();
+      }
+      c_i = psi_i.array().square().inverse().matrix() -  slice_col(b_i, idx_nondiag) * slice_row(p_i, idx_nondiag);
+      b_i = slice_col(b_i, idx_diag);
+      b_i = slice_both(b_i, idx_ordered, idx_ordered); 
+      c_i = slice_row(c_i, idx_ordered);
+      VectorXd v_i(Map<VectorXd>(c_i.data(), c_i.rows()));
+      VectorXd s_i = b_i.colPivHouseholderQr().solve(v_i);
+      for (j = 0; j < idx_ordered.size(); j++) {
+        phi_i(idx_ordered[j], idx_ordered[j]) = s_i(j); 
+      }
+    }
+    if (idx_reference > -1) {
+      Eigen::Map<Eigen::MatrixXd> phi_0(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[idx_reference]));
+      for (i = 0; i < n_group; i++) {
+        Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
+        for (j = 0; j < n_theta; j++) {
+          if ((theta_is_diag[j]) & (Rcpp::is_true(Rcpp::any(theta_left_idx[j] == idx_ordered)))) {
+            if (theta_group_idx[j] == 0) {
+              theta_value[j] = phi_0(theta_left_idx[j], theta_left_idx[j]);
+            } else if ((theta_group_idx[j] - 1) == i) {
+              theta_value[j] = phi_i(theta_left_idx[j], theta_left_idx[j]) - phi_0(theta_left_idx[j], theta_left_idx[j]);
+            } else {}
+          }
+        }
+      }      
+    } else {
+      for (i = 0; i < n_group; i++) {
+        Eigen::Map<Eigen::MatrixXd> phi_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(phi[i]));
+        for (j = 0; j < n_theta; j++) {
+          if ((theta_is_diag[j]) & (Rcpp::is_true(Rcpp::any(theta_left_idx[j] == idx_ordered)))) {
+            if ((theta_group_idx[j] - 1) == i) {
+              theta_value[j] = phi_i(theta_left_idx[j], theta_left_idx[j]);
+            }
+          }
+        }
+      }
+    }
+  }  
 }
 
 // method for updating starting value for theta
@@ -1051,6 +1293,7 @@ void lslxOptimizer::update_coefficient() {
       } else {}
       update_regularizer_gradient();
       update_objective_gradient();
+      update_nuisance();
       update_theta_start();
       for (i = 0; i < n_theta; i++) {
         if ((theta_is_free[i] | theta_is_pen[i]) & theta_is_est[i]) {
@@ -1348,507 +1591,3 @@ Rcpp::NumericVector lslxOptimizer::extract_coefficient() {
   return Rcpp::clone(theta_value);
 }
 
-// method for slicing columns
-Eigen::MatrixXd lslxOptimizer::slice_col(Eigen::MatrixXd x, Rcpp::IntegerVector col_idx) {
-  Eigen::MatrixXd y(x.rows(), col_idx.size());
-  int i;
-  for (i = 0; i < col_idx.size(); i++) {
-    y.col(i) = x.col(col_idx[i]);
-  }
-  return(y);
-}
-
-// method for slicing both rows and columns
-Eigen::MatrixXd lslxOptimizer::slice_both(Eigen::MatrixXd x, 
-                                          Rcpp::IntegerVector row_idx, 
-                                          Rcpp::IntegerVector col_idx) {
-  Eigen::MatrixXd y(row_idx.size(), col_idx.size());
-  int i, j;
-  for (i = 0; i < row_idx.size(); i++) {
-    for (j = 0; j < col_idx.size(); j++) {
-      y(i, j) = x(row_idx[i], col_idx[j]);
-    }
-  }
-  return y;
-}
-
-// method for expanding both rows and columns
-Eigen::MatrixXd lslxOptimizer::expand_both(Eigen::MatrixXd x, 
-                                           Rcpp::IntegerVector row_idx, 
-                                           Rcpp::IntegerVector col_idx,
-                                           int n_row,
-                                           int n_col) {
-  Eigen::MatrixXd y;
-  y = Eigen::MatrixXd::Zero(n_row, n_col);
-  int i, j;
-  for (i = 0; i < row_idx.size(); i++) {
-    for (j = 0; j < col_idx.size(); j++) {
-      y(row_idx[i], col_idx[j]) = x(i, j);
-    }
-  }
-  return y;
-}
-
-// method for vech operator
-Eigen::MatrixXd lslxOptimizer::vech(Eigen::MatrixXd x) {
-  int n_col = x.cols();
-  Eigen::MatrixXd y((n_col * (n_col + 1)) / 2, 1);
-  int idx = 0;
-  int i, j;
-  for (i = 0; i < n_col; i ++ ) {
-    for (j = i; j < n_col; j ++ ) {
-      y(idx, 0) = x(j, i);
-      idx += 1;
-    }
-  }
-  return y;
-}
-
-// method for creating commutation matrix
-Eigen::SparseMatrix<double> lslxOptimizer::create_commutation(int n) {
-  int n2 = n * n;
-  Eigen::SparseMatrix<double> commutation(n2, n2);
-  int i, j, row_idx, col_idx;
-  for (i = 0; i < n2; i++) {
-    row_idx = i % n;
-    col_idx = i / n;
-    j = n * row_idx + col_idx;
-    commutation.insert(i, j) = 1;
-  }
-  return commutation;
-}
-
-// method for creating duplication matrix
-Eigen::SparseMatrix<double> lslxOptimizer::create_duplication(int n) {
-  SparseMatrix<double> duplication(n * n, (n * (n + 1)) / 2);
-  int i, j, idx, row_idx, col_idx;
-  idx = 0;
-  for (i = 0; i < n; i++) {
-    for (j = 0; j < n; j++) {
-      if (j >= i) {
-        row_idx = n * i + j - i * (i + 1) / 2;
-        col_idx = n * i + j - i * (i + 1) / 2;
-      } else {
-        row_idx = n * j + i - j * (j + 1) / 2;
-        col_idx = n * j + i - j * (j + 1) / 2;
-      }
-      if (row_idx == col_idx) {
-        duplication.insert(idx, col_idx) = 1;
-      }
-      idx += 1;
-    }
-  }
-  return duplication;
-}
-
-// method for which function
-Rcpp::IntegerVector lslxOptimizer::which(Rcpp::LogicalVector x) {
-  Rcpp::IntegerVector y = Rcpp::seq(0, x.size()-1);
-  return y[x];
-}
-
-// method for sign function
-int lslxOptimizer::sign(double x) {
-  int y;
-  if (x > DBL_EPSILON) {
-    y = 1;
-  } else if (-x > DBL_EPSILON) {
-    y = -1;
-  } else {
-    y = 0;
-  }
-  return(y);
-}
-
-
-// compute solution path
-// [[Rcpp::export]]
-void compute_regularized_path_cpp(
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result,
-    Rcpp::List fitted_result) {
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  Rcpp::NumericVector theta_start_zero = Rcpp::clone(optimizer.theta_start);
-  Rcpp::NumericVector lambda_grid = Rcpp::as<Rcpp::NumericVector>(control["lambda_grid"]);
-  Rcpp::NumericVector delta_grid = Rcpp::as<Rcpp::NumericVector>(control["delta_grid"]);
-  Rcpp::List numerical_condition = Rcpp::as<Rcpp::List>(fitted_result["numerical_condition"]);
-  Rcpp::List information_criterion = Rcpp::as<Rcpp::List>(fitted_result["information_criterion"]);
-  Rcpp::List fit_index = Rcpp::as<Rcpp::List>(fitted_result["fit_index"]);
-  Rcpp::List coefficient = Rcpp::as<Rcpp::List>(fitted_result["coefficient"]);
-  
-  int i, j, idx;
-  for (i = 0; i < lambda_grid.size(); i++) {
-    if (!optimizer.warm_start) {
-      optimizer.set_theta_value(theta_start_zero);
-    }
-    for (j = 0; j < delta_grid.size(); j++) {
-      optimizer.set_regularizer(
-        Rcpp::as< Rcpp::CharacterVector >(control["regularizer_type"]), 
-        lambda_grid[i], delta_grid[j]);
-      optimizer.complete_estimation();
-      idx = i * delta_grid.size() + j;
-      coefficient[idx] = optimizer.extract_coefficient();
-      numerical_condition[idx] = optimizer.extract_numerical_condition();
-      information_criterion[idx] = optimizer.extract_information_criterion();
-      fit_index[idx] = optimizer.extract_fit_index();
-    }
-  }
-}
-
-
-
-// compute stepwise solution path made by forward or backward selection
-// [[Rcpp::export]]
-void compute_stepwise_path_cpp(
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result,
-    Rcpp::List fitted_result) {
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  Rcpp::NumericVector theta_start_zero = Rcpp::clone(optimizer.theta_start);
-  optimizer.set_regularizer(
-    Rcpp::as< Rcpp::CharacterVector >(control["regularizer_type"]), 0.0, INFINITY);
-  Rcpp::IntegerVector step_grid = Rcpp::as<Rcpp::IntegerVector>(control["step_grid"]);
-  Rcpp::List numerical_condition = Rcpp::as<Rcpp::List>(fitted_result["numerical_condition"]);
-  Rcpp::List information_criterion = Rcpp::as<Rcpp::List>(fitted_result["information_criterion"]);
-  Rcpp::List fit_index = Rcpp::as<Rcpp::List>(fitted_result["fit_index"]);
-  Rcpp::List coefficient = Rcpp::as<Rcpp::List>(fitted_result["coefficient"]);
-  
-  int i;
-  for (i = 0; i < step_grid.size(); i++) {
-    if (!optimizer.warm_start) {
-      optimizer.set_theta_value(theta_start_zero);
-    }
-    if (i == 0) {
-      optimizer.complete_estimation();
-      coefficient[i] = optimizer.extract_coefficient();
-      numerical_condition[i] = optimizer.extract_numerical_condition();
-      information_criterion[i] = optimizer.extract_information_criterion();
-      fit_index[i] = optimizer.extract_fit_index();
-    } else {
-      optimizer.complete_searching();
-      coefficient[i] = optimizer.extract_coefficient();
-      numerical_condition[i] = optimizer.extract_numerical_condition();
-      information_criterion[i] = optimizer.extract_information_criterion();
-      fit_index[i] = optimizer.extract_fit_index();
-    }
-  }
-}
-
-
-// compute coefficient matrix
-// [[Rcpp::export]]
-Rcpp::List compute_coefficient_matrix_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Rcpp::List coefficient_matrix;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  
-  coefficient_matrix = 
-    Rcpp::List::create(Rcpp::Named("alpha") = optimizer.alpha,
-                       Rcpp::Named("beta") = optimizer.beta,
-                       Rcpp::Named("phi") = optimizer.phi);
-  
-  return Rcpp::wrap(coefficient_matrix);
-}
-
-// compute implied covariance
-// [[Rcpp::export]]
-Rcpp::List compute_implied_cov_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Rcpp::List implied_cov;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  
-  implied_cov = optimizer.sigma;
-  return Rcpp::wrap(implied_cov);
-}
-
-// compute implied mean
-// [[Rcpp::export]]
-Rcpp::List compute_implied_mean_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Rcpp::List implied_mean;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  
-  implied_mean = optimizer.mu;
-  return Rcpp::wrap(implied_mean);
-}
-
-// compute moment jacobian
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_model_jacobian_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  Eigen::MatrixXd model_jacobian = 
-    Eigen::MatrixXd::Zero(optimizer.n_group * optimizer.n_moment, 
-                          optimizer.n_theta);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  optimizer.update_model_jacobian();
-  int i;
-  for (i = 0; i < optimizer.n_group; i++) {
-    Eigen::Map<Eigen::MatrixXd> model_jacobian_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(optimizer.model_jacobian[i]));
-    model_jacobian.block(
-      i * optimizer.n_moment, 0,
-      optimizer.n_moment, optimizer.n_theta) = model_jacobian_i;
-  }
-  return Rcpp::wrap(model_jacobian);
-}
-
-// compute bfgs hessian
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_bfgs_hessian_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Eigen::MatrixXd bfgs_hessian;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  
-  optimizer.update_residual_weight();
-  optimizer.update_model_jacobian();
-  optimizer.update_loss_expected_hessian();
-  optimizer.update_loss_bfgs_hessian();
-  bfgs_hessian = optimizer.loss_bfgs_hessian;
-  return Rcpp::wrap(bfgs_hessian);
-}
-
-// compute expected fisher
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_expected_information_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Eigen::MatrixXd expected_information;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  
-  optimizer.update_residual_weight();
-  optimizer.update_model_jacobian();
-  optimizer.update_loss_expected_hessian();
-  expected_information = 0.5 * optimizer.loss_expected_hessian;
-  return Rcpp::wrap(expected_information);
-}
-
-// compute observed fisher
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_observed_information_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Eigen::MatrixXd observed_information;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_theta_start();
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  
-  optimizer.update_residual_weight();
-  optimizer.update_model_jacobian();
-  optimizer.update_loss_gradient();
-  optimizer.update_loss_observed_hessian();
-  observed_information = 0.5 * optimizer.loss_observed_hessian;
-  return Rcpp::wrap(observed_information);
-}
-
-// compute asymptotic covariance of score
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_score_acov_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  Eigen::MatrixXd score_acov = 
-    Eigen::MatrixXd::Zero(optimizer.n_theta, 
-                          optimizer.n_theta);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  optimizer.update_residual_weight();
-  optimizer.update_model_jacobian();
-  
-  int i;
-  for (i = 0; i < optimizer.n_group; i++) {
-    Eigen::Map<Eigen::MatrixXd> model_jacobian_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(optimizer.model_jacobian[i]));
-    Eigen::Map<Eigen::MatrixXd> residual_weight_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(optimizer.residual_weight[i]));
-    Eigen::Map<Eigen::MatrixXd> saturated_moment_acov_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(optimizer.saturated_moment_acov[i]));
-    score_acov += 
-      model_jacobian_i.transpose() * residual_weight_i * 
-      saturated_moment_acov_i * residual_weight_i * model_jacobian_i;
-  }
-  return Rcpp::wrap(score_acov);
-}
-
-// compute loss value
-// [[Rcpp::export]]
-double compute_loss_value_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  double loss_value;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  optimizer.update_loss_value();
-  loss_value = optimizer.loss_value;
-  return loss_value;
-}
-
-// compute loss gradient 
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_loss_gradient_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Eigen::MatrixXd loss_gradient;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  if (optimizer.loss == "ml") {
-    optimizer.update_loss_gradient_direct();
-  } else {    
-    optimizer.update_residual_weight();
-    optimizer.update_model_jacobian();
-    optimizer.update_loss_gradient();
-    }
-  loss_gradient = optimizer.loss_gradient;
-  return Rcpp::wrap(loss_gradient);
-}
-
-// compute regularizer gradient
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_regularizer_gradient_cpp(
-    Rcpp::NumericVector theta_value,
-    double lambda,
-    double delta,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Eigen::MatrixXd regularizer_gradient;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.set_regularizer(Rcpp::as<Rcpp::CharacterVector>(control["regularizer_type"]), lambda, delta);
-  optimizer.update_regularizer_gradient();
-  regularizer_gradient = optimizer.regularizer_gradient;
-  return Rcpp::wrap(regularizer_gradient);
-}
-
-// compute objective gradient
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_objective_gradient_cpp(
-    Rcpp::NumericVector theta_value,
-    double lambda,
-    double delta,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Eigen::MatrixXd objective_gradient;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.set_regularizer(Rcpp::as<Rcpp::CharacterVector>(control["regularizer_type"]), lambda, delta);
-  
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  
-  if (optimizer.loss == "ml") {
-    optimizer.update_loss_gradient_direct();
-  } else {    
-    optimizer.update_residual_weight();
-    optimizer.update_model_jacobian();
-    optimizer.update_loss_gradient();
-  }
-  optimizer.update_regularizer_gradient();
-  optimizer.update_objective_gradient();
-  objective_gradient = optimizer.objective_gradient;
-  return Rcpp::wrap(objective_gradient);
-}
