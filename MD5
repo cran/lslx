@@ -1,4 +1,4 @@
-24ce8bc23767676a8aa3f52e89fe8906 *DESCRIPTION
+6326a6d8bd61def076f8cbaa0638435a *DESCRIPTION
 582e26ad6218acb487a2fe3a4cb99d17 *NAMESPACE
 51945990dd4facc62d14d6f0fafcc9d0 *R/RcppExports.R
 569af2418bc567db37787fc90f4a2caa *R/lslx-class.R
@@ -20,7 +20,7 @@ db06c4be538a97e04e2d7e7cca857ca8 *R/lslx-validate-method.R
 a9594c962f202441d1081a92a9f670a8 *R/lslxData-class.R
 5532b8b81096cf73bf5d58133eabef1c *R/lslxData-initialize-method.R
 c8b2baaf77ea0ea57e1a6ff15f1327f7 *R/lslxFitting-class.R
-f6f4ae75973042bfddcca081c8c7febe *R/lslxFitting-initialize-method.R
+7aa9af0d6a9edf34dc3c9fd973ad99c6 *R/lslxFitting-initialize-method.R
 bb5a92899a44683978c5b880d688a0ed *R/lslxModel-class.R
 66f00573f6817e14c07912a4b15750a2 *R/lslxModel-initialize-method.R
 6744a2f0550fce0c3f805eff309db736 *R/polyhedral.R
@@ -46,7 +46,7 @@ f025b9a62615aa24b58df163683dfd39 *inst/doc/structural-equation-modeling.Rmd
 8055ecd6eab9810856ca75ce16d75dff *inst/doc/structural-equation-modeling.html
 728912631cea4efc9a86554201cdbd18 *inst/doc/vignette-lslx.R
 d9ad59f5845a50e1b95e80ae1cbded70 *inst/doc/vignette-lslx.Rnw
-e045d5dbd12992f30c080ac81a3c5449 *inst/doc/vignette-lslx.pdf
+52bf95c60f6b377598f22251c748209f *inst/doc/vignette-lslx.pdf
 9feb733eb2bcd7cb7bbe4ea1c41161c8 *man/coef.lslx.Rd
 9333d2331f89a594ddcb5c496fe05809 *man/fitted.lslx.Rd
 ca38f0c1df947ca276ab2c1ca1993132 *man/lslx.Rd
