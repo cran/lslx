@@ -111,24 +111,74 @@ Eigen::MatrixXd vech_small(Eigen::MatrixXd x) {
   return(y);
 }
 
+
+// method for deduplifying both sides
+Eigen::MatrixXd deduplify_both(Eigen::MatrixXd x, 
+                               Rcpp::IntegerVector idx_vech,
+                               Rcpp::IntegerVector idx_tvech,
+                               Rcpp::IntegerVector idx_vech_match) {
+  Eigen::MatrixXd y;
+  int i;
+  y = slice_row(x, idx_vech) + slice_row(x, idx_tvech);
+  for (i = 0; i < idx_vech_match.size(); i++) {
+    y.row(idx_vech_match[i]) = y.row(idx_vech_match[i]) / 2.0;
+  } 
+  y = slice_col(y, idx_vech) + slice_col(y, idx_tvech);
+  for (i = 0; i < idx_vech_match.size(); i++) {
+    y.col(idx_vech_match[i]) = y.col(idx_vech_match[i]) / 2.0;
+  } 
+  return y;
+}
+
+
+// method for deduplifying left side
+Eigen::MatrixXd deduplify_left(Eigen::MatrixXd x, 
+                               Rcpp::IntegerVector idx_vech,
+                               Rcpp::IntegerVector idx_tvech,
+                               Rcpp::IntegerVector idx_vech_match) {
+  Eigen::MatrixXd y;
+  int i;
+  y = slice_row(x, idx_vech) + slice_row(x, idx_tvech);
+  for (i = 0; i < idx_vech_match.size(); i++) {
+    y.row(idx_vech_match[i]) = y.row(idx_vech_match[i]) / 2.0;
+  } 
+  return y;
+}
+
+// method for deduplifying right side
+Eigen::MatrixXd deduplify_right(Eigen::MatrixXd x, 
+                               Rcpp::IntegerVector idx_vech,
+                               Rcpp::IntegerVector idx_tvech,
+                               Rcpp::IntegerVector idx_vech_match) {
+  Eigen::MatrixXd y;
+  int i;
+  y = slice_col(x, idx_vech) + slice_col(x, idx_tvech);
+  for (i = 0; i < idx_vech_match.size(); i++) {
+    y.col(idx_vech_match[i]) = y.col(idx_vech_match[i]) / 2.0;
+  } 
+  return y;
+}
+
 // method for creating commutation matrix
-Eigen::SparseMatrix<double> create_commutation(int n) {
+Eigen::MatrixXd create_commutation(int n) {
   int n2 = n * n;
-  Eigen::SparseMatrix<double> commutation(n2, n2);
+  Eigen::MatrixXd commutation;
+  commutation = Eigen::MatrixXd::Zero(n2, n2);
   int i, j, row_idx, col_idx;
   for (i = 0; i < n2; i++) {
     row_idx = i % n;
     col_idx = i / n;
     j = n * row_idx + col_idx;
-    commutation.insert(i, j) = 1;
+    commutation(i, j) = 1.0;
   }
   return commutation;
 }
 
 
 // create duplication matrix
-Eigen::SparseMatrix<double> create_duplication(int n) {
-  SparseMatrix<double> duplication(n * n, (n * (n + 1)) / 2);
+Eigen::MatrixXd create_duplication(int n) {
+  Eigen::MatrixXd duplication;
+  duplication = Eigen::MatrixXd::Zero(n * n, (n * (n + 1)) / 2);
   int i, j, idx, row_idx, col_idx;
   idx = 0;
   for (i = 0; i < n; i++) {
@@ -141,12 +191,75 @@ Eigen::SparseMatrix<double> create_duplication(int n) {
         col_idx = n * j + i - j * (j + 1) / 2;
       }
       if (row_idx == col_idx) {
-        duplication.insert(idx, col_idx) = 1;
+        duplication(idx, col_idx) = 1.0;
       }
       idx += 1;
     }
   }
   return duplication;
+}
+
+
+
+// create vech idx
+Rcpp::IntegerVector create_idx_vech(int n, bool diag) {
+  Rcpp::IntegerVector idx_vech(0);
+  Rcpp::IntegerVector idx_all = Rcpp::seq(0, std::pow(n, 2) - 1);
+  int idx_row, idx_col;
+  int i;
+  for (idx_col = 0; idx_col < n; idx_col++) {
+    for (idx_row = 0; idx_row < n; idx_row++) {
+      i = idx_col * n + idx_row;
+      if (diag) {
+        if (idx_row >= idx_col) {
+          idx_vech.push_back(idx_all[i]);
+        }
+      } else {
+        if (idx_row > idx_col) {
+          idx_vech.push_back(idx_all[i]);
+        }
+      }
+    } 
+  }
+  return idx_vech;
+}
+
+// create transposed vech idx
+Rcpp::IntegerVector create_idx_tvech(int n, bool diag) {
+  Rcpp::IntegerVector idx_tvech(0);
+  Rcpp::IntegerVector idx_all = Rcpp::seq(0, std::pow(n, 2) - 1);
+  int idx_row, idx_col;
+  int i;
+  for (idx_col = 0; idx_col < n; idx_col++) {
+    for (idx_row = 0; idx_row < n; idx_row++) {
+      i = idx_row * n + idx_col;
+      if (diag) {
+        if (idx_row >= idx_col) {
+          idx_tvech.push_back(idx_all[i]);
+        }
+      } else {
+        if (idx_row > idx_col) {
+          idx_tvech.push_back(idx_all[i]);
+        }
+      }
+    } 
+  }
+  return idx_tvech;
+}
+
+// find index of intersected elements
+Rcpp::IntegerVector find_idx_match(Rcpp::IntegerVector x, Rcpp::IntegerVector y) {
+  Rcpp::IntegerVector z(0);
+  int i, j;
+  for (i = 0; i < x.size(); i++) {
+    for (j = 0; j < y.size(); j++) {
+      if (x[i] == y[j]) {
+        z.push_back(i);
+        break;
+      }
+    }
+  }
+  return z;
 }
 
 

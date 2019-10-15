@@ -25,6 +25,10 @@ compute_none_path_cpp <- function(reduced_data, reduced_model, control, supplied
     invisible(.Call('_lslx_compute_none_path_cpp', PACKAGE = 'lslx', reduced_data, reduced_model, control, supplied_result, fitted_result))
 }
 
+test_optimization_cpp <- function(reduced_data, reduced_model, control, supplied_result, fitted_result) {
+    .Call('_lslx_test_optimization_cpp', PACKAGE = 'lslx', reduced_data, reduced_model, control, supplied_result, fitted_result)
+}
+
 compute_coefficient_matrix_cpp <- function(theta_value, reduced_data, reduced_model, control, supplied_result) {
     .Call('_lslx_compute_coefficient_matrix_cpp', PACKAGE = 'lslx', theta_value, reduced_data, reduced_model, control, supplied_result)
 }
@@ -39,10 +43,6 @@ compute_implied_mean_cpp <- function(theta_value, reduced_data, reduced_model, c
 
 compute_model_jacobian_cpp <- function(theta_value, reduced_data, reduced_model, control, supplied_result) {
     .Call('_lslx_compute_model_jacobian_cpp', PACKAGE = 'lslx', theta_value, reduced_data, reduced_model, control, supplied_result)
-}
-
-compute_bfgs_hessian_cpp <- function(theta_value, reduced_data, reduced_model, control, supplied_result) {
-    .Call('_lslx_compute_bfgs_hessian_cpp', PACKAGE = 'lslx', theta_value, reduced_data, reduced_model, control, supplied_result)
 }
 
 compute_expected_information_cpp <- function(theta_value, reduced_data, reduced_model, control, supplied_result) {
@@ -65,11 +65,11 @@ compute_loss_gradient_cpp <- function(theta_value, reduced_data, reduced_model, 
     .Call('_lslx_compute_loss_gradient_cpp', PACKAGE = 'lslx', theta_value, reduced_data, reduced_model, control, supplied_result)
 }
 
-compute_regularizer_gradient_cpp <- function(theta_value, lambda, delta, reduced_data, reduced_model, control, supplied_result) {
-    .Call('_lslx_compute_regularizer_gradient_cpp', PACKAGE = 'lslx', theta_value, lambda, delta, reduced_data, reduced_model, control, supplied_result)
+compute_regularizer_gradient_cpp <- function(theta_value, lambda_1st, lambda_2nd, delta_1st, delta_2nd, reduced_data, reduced_model, control, supplied_result) {
+    .Call('_lslx_compute_regularizer_gradient_cpp', PACKAGE = 'lslx', theta_value, lambda_1st, lambda_2nd, delta_1st, delta_2nd, reduced_data, reduced_model, control, supplied_result)
 }
 
-compute_objective_gradient_cpp <- function(theta_value, lambda, delta, reduced_data, reduced_model, control, supplied_result) {
-    .Call('_lslx_compute_objective_gradient_cpp', PACKAGE = 'lslx', theta_value, lambda, delta, reduced_data, reduced_model, control, supplied_result)
+compute_objective_gradient_cpp <- function(theta_value, lambda_1st, lambda_2nd, delta_1st, delta_2nd, reduced_data, reduced_model, control, supplied_result) {
+    .Call('_lslx_compute_objective_gradient_cpp', PACKAGE = 'lslx', theta_value, lambda_1st, lambda_2nd, delta_1st, delta_2nd, reduced_data, reduced_model, control, supplied_result)
 }
 

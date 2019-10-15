@@ -84,8 +84,8 @@ lslxFitting$set("private",
                   if (!(self$control$loss %in% c("default", "ml", "uls", "dwls", "wls"))) {
                     stop("Argument 'default' can be only 'default', 'ml', 'uls', 'dwls', or 'wls'.")
                   }
-                  if (!(self$control$algorithm %in% c("default", "gd", "bfgs", "fisher"))) {
-                    stop("Argument 'algorithm' can be only 'default', 'gd', 'bfgs', or 'fisher'.")
+                  if (!(self$control$algorithm %in% c("default", "dynamic", "gd", "bfgs", "fisher"))) {
+                    stop("Argument 'algorithm' can be only 'default', 'dynamic', 'gd', 'bfgs', or 'fisher'.")
                   }
                   if (!(self$control$missing_method %in% c("default", "two_stage", "listwise_deletion"))) {
                     stop(
@@ -171,8 +171,12 @@ lslxFitting$set("private",
                     stop("Argument 'minimum_variance' must be a numeric vector with length one.")
                   }
                   if (!(is.logical(self$control$enforce_cd) &
-                        (length(self$control$minimum_variance) == 1))) {
+                        (length(self$control$enforce_cd) == 1))) {
                     stop("Argument 'enforce_cd' must be a logical vector with length one.")
+                  }
+                  if (!(is.logical(self$control$random_update) &
+                        (length(self$control$random_update) == 1))) {
+                    stop("Argument 'random_update' must be a logical vector with length one.")
                   }
                   if (!is.null(self$control$weight_matrix)) {
                     if (!is.list(self$control$weight_matrix) &
@@ -225,6 +229,11 @@ lslxFitting$set("private",
                         self$control$model_class <- "sem"
                       }
                     }
+                  }
+                  if (2 %in% model$specification$set) {
+                    self$control$double_regularizer <- TRUE
+                  } else {
+                    self$control$double_regularizer <- FALSE
                   }
                   if (length(data$response) > 0) {
                     self$control$response <- TRUE
@@ -337,7 +346,7 @@ lslxFitting$set("private",
                     }
                   }
                   if (self$control$algorithm == "default") {
-                    self$control$algorithm <- "fisher"
+                    self$control$algorithm <- "dynamic"
                   }
                   if (self$control$missing_method == "default") {
                     if (self$control$continuous) {
@@ -457,6 +466,7 @@ lslxFitting$set("private",
                         )
                       ),
                       theta_flat_idx = NA_integer_,
+                      theta_tflat_idx = NA_integer_,
                       theta_group_idx = ifelse(
                         rep(
                           is.null(model$reference_group),
@@ -482,8 +492,20 @@ lslxFitting$set("private",
                           TRUE,
                           FALSE
                         ),
-                      theta_start = model$specification$start)
-                  
+                      theta_start = model$specification$start,
+                      theta_penalty = model$specification$penalty,
+                      theta_set = model$specification$set,
+                      theta_weight = model$specification$weight)
+                  self$reduced_model$theta_penalty <-
+                    ifelse(self$reduced_model$theta_penalty == "default",
+                           self$control$penalty_method,
+                           self$reduced_model$theta_penalty)
+                  if (self$control$penalty_method %in% c("forward", "backward")) {
+                    if (any(self$reduced_model$theta_penalty %in% c("lasso", "ridge", "mcp", "elastic_net"))) {
+                      stop("When 'penalty_method' is set as 'forward' or 'backward', coefficients cannot be penalized by 'lasso', 'ridge', 'mcp', or 'elastic_net'.")
+                    }
+                  }
+
                   if (!self$control$continuous) {
                     self$reduced_model$threshold_flat_idx <- 
                       matrix(0, length(model$name_response), max(model$nlevel_ordered - 1))
@@ -560,6 +582,8 @@ lslxFitting$set("private",
                       setdiff(matrix(1:(length(model$name_eta) * length(model$name_eta)), 
                                      length(model$name_eta), length(model$name_eta)),
                               self$reduced_model$idx_diag)
+                    self$reduced_model$idx_diag_psi <- 
+                      1L + ((1:self$reduced_model$n_response) - 1L) * (self$reduced_model$n_response + 1L)
                   }
                   
                   self$reduced_model$theta_flat_idx <-
@@ -585,23 +609,65 @@ lslxFitting$set("private",
                                       as.integer(
                                         self$reduced_model$n_eta *
                                           (self$reduced_model$theta_right_idx - 1L) +
-                                          self$reduced_model$theta_left_idx -
-                                          self$reduced_model$theta_right_idx *
-                                          (self$reduced_model$theta_right_idx - 1L) / 2L
+                                          self$reduced_model$theta_left_idx
                                       ),
-                                      as.integer(
-                                        self$reduced_model$n_response *
-                                          (self$reduced_model$theta_right_idx - 1L) +
-                                          self$reduced_model$theta_left_idx -
-                                          self$reduced_model$theta_right_idx *
-                                          (self$reduced_model$theta_right_idx - 1L) / 2L
-                                      ))
+                                      as.integer(self$reduced_model$theta_left_idx))
                              )
                            ))
+                  self$reduced_model$theta_tflat_idx <-
+                    ifelse(self$reduced_model$theta_matrix_idx == 0,
+                           self$reduced_model$threshold_flat_idx[
+                             cbind(ifelse(self$reduced_model$theta_left_idx <= 
+                                            length(model$name_response),
+                                          self$reduced_model$theta_left_idx,
+                                          NA),
+                                   ifelse(self$reduced_model$theta_right_idx <=
+                                            length(model$name_threshold),
+                                          self$reduced_model$theta_right_idx,
+                                          NA))],
+                           ifelse(
+                             self$reduced_model$theta_matrix_idx == 1,
+                             self$reduced_model$theta_left_idx,
+                             ifelse(
+                               self$reduced_model$theta_matrix_idx == 2,
+                               self$reduced_model$n_eta *
+                                 (self$reduced_model$theta_left_idx - 1L) +
+                                 self$reduced_model$theta_right_idx,
+                               ifelse(self$reduced_model$theta_matrix_idx == 3,
+                                      as.integer(
+                                        self$reduced_model$n_eta *
+                                          (self$reduced_model$theta_left_idx - 1L) +
+                                          self$reduced_model$theta_right_idx
+                                      ),
+                                      as.integer(self$reduced_model$theta_right_idx))
+                             )
+                           ))
+                  
                   self$reduced_model$n_theta_is_free <-
                     sum(self$reduced_model$theta_is_free)
                   self$reduced_model$n_theta_is_pen <-
                     sum(self$reduced_model$theta_is_pen)
+                  
+                  idx_row <- matrix(1:self$reduced_model$n_eta, 
+                                self$reduced_model$n_eta, 
+                                self$reduced_model$n_eta)
+                  idx_col <- matrix(1:self$reduced_model$n_eta, 
+                                    self$reduced_model$n_eta, 
+                                    self$reduced_model$n_eta, 
+                                    byrow = TRUE)
+                  idx_matrix <- matrix(1:(self$reduced_model$n_eta^2), 
+                                self$reduced_model$n_eta, 
+                                self$reduced_model$n_eta, byrow = TRUE)
+                  self$reduced_model$idx_vech <- 
+                    matrix(1:(self$reduced_model$n_response^2), 
+                           self$reduced_model$n_response,
+                           self$reduced_model$n_response)[
+                             lower.tri(matrix(0, 
+                                              self$reduced_model$n_response, 
+                                              self$reduced_model$n_response), 
+                                       diag = TRUE)]
+                  self$reduced_model$idx_nd_vech <- which(idx_row > idx_col)
+                  self$reduced_model$idx_nd_tvech <- idx_matrix[idx_row > idx_col]
                 })
 
 ## \code{$initialize_reduced_data()} initializes a reduced data. ##
@@ -1442,6 +1508,7 @@ lslxFitting$set("private",
                           diag(sqrt(cor_pool_eigen$values[1:self$reduced_model$n_factor]))
                         cov_eta_yf <-
                           promax(cov_eta_yf, m = 4)$loadings[]
+                        cov_eta_yf[abs(cov_eta_yf) < 0.2] <- 0
                         cov_eta[1:self$reduced_model$n_response,
                                 (self$reduced_model$n_response + 1):self$reduced_model$n_eta] <-
                           cov_eta_yf
@@ -1831,28 +1898,56 @@ lslxFitting$set("private",
                         lambda_max <-
                           1 / quantile((saturated_var * 0.3) / sqrt(saturated_var), 0.3) *
                           self$control$threshold_value
-                      } else {
-                      }
+                      } else {}
                       lambda_min <-
                         (log(self$reduced_data$n_observation) / self$reduced_data$n_observation)
-                      self$control$lambda_grid <-
-                        exp(seq(
-                          log(lambda_max),
-                          log(lambda_min),
-                          length.out = self$control$lambda_length
-                        ))
+                      if (self$control$double_regularizer) {
+                        self$control$lambda_grid <- 
+                          list(exp(seq(
+                            log(lambda_max),
+                            log(lambda_min),
+                            length.out = self$control$lambda_length
+                          )),
+                          exp(seq(
+                            log(lambda_max),
+                            log(lambda_min),
+                            length.out = self$control$lambda_length
+                          )))
+                      } else {
+                        self$control$lambda_grid <- 
+                          list(exp(seq(
+                            log(lambda_max),
+                            log(lambda_min),
+                            length.out = self$control$lambda_length
+                          )),
+                          0)
+                      }
+                    } else {
+                      if (self$control$double_regularizer) {
+                        self$control$lambda_grid <- 
+                          list(self$control$lambda_grid,
+                               self$control$lambda_grid)
+                      } else {
+                        self$control$lambda_grid <- 
+                          list(self$control$lambda_grid, 0)
+                      }
                     }
                     if (self$control$delta_grid[[1]] == "default") {
                       if (self$control$penalty_method == "lasso") {
-                        self$control$delta_grid <- 1
+                        self$control$delta_grid <- list(1, 1)
                       } else if (self$control$penalty_method == "ridge") {
-                        self$control$delta_grid <- 0
+                        self$control$delta_grid <- list(0, 0)
                       } else if (self$control$penalty_method == "elastic_net") {
-                        if (self$control$delta_length == 1) {
-                          self$control$delta_grid <- 0.5
+                        self$control$delta_grid <-
+                          seq(0, 1, length.out = (self$control$delta_length + 2))[2:(self$control$delta_length + 1)]
+                        if (self$control$double_regularizer) {
+                          self$control$delta_grid <-
+                            list(self$control$delta_grid,
+                                 self$control$delta_grid) 
                         } else {
                           self$control$delta_grid <-
-                            seq(0, 1, length.out = self$control$delta_length)
+                            list(self$control$delta_grid,
+                                 0.5) 
                         }
                       } else if (self$control$penalty_method %in% c("mcp")) {
                         if (self$control$start_method == "mh") {
@@ -1870,16 +1965,33 @@ lslxFitting$set("private",
                           
                         }
                         if (self$control$delta_length == 1) {
-                          self$control$delta_grid <- Inf
+                          self$control$delta_grid <- 
+                            list(Inf, Inf)
                         } else {
-                          self$control$delta_grid <-
-                            c(delta_min * (1:(self$control$delta_length - 1)), Inf)
+                          if (self$control$double_regularizer) {
+                            self$control$delta_grid <-
+                              list(c(delta_min * (1:(self$control$delta_length - 1)), Inf),
+                                   c(delta_min * (1:(self$control$delta_length - 1)), Inf))
+                          } else {
+                            self$control$delta_grid <-
+                              list(c(delta_min * (1:(self$control$delta_length - 1)), Inf),
+                                   Inf) 
+                          }
                         }
+                      } else {}
+                    } else {
+                      if (self$control$double_regularizer) {
+                        self$control$delta_grid <- 
+                          list(self$control$delta_grid,
+                               self$control$delta_grid)
                       } else {
+                        self$control$delta_grid <- 
+                          list(self$control$delta_grid,
+                               ifelse(self$control$penalty_method == "mcp", Inf, 0))
                       }
                     }
                     if (self$control$lambda_direction == "default") {
-                      if (min(self$control$lambda_grid) == 0) {
+                      if (min(self$control$lambda_grid[[1]]) == 0) {
                         self$control$lambda_direction <- "decrease"
                       } else {
                         self$control$lambda_direction <- "increase"
@@ -1887,18 +1999,37 @@ lslxFitting$set("private",
                     }
                     if (self$control$lambda_direction == "decrease") {
                       self$control$lambda_grid <-
-                        sort(self$control$lambda_grid, decreasing = TRUE)
+                        lapply(X = self$control$lambda_grid,
+                               FUN = function(x) {
+                                 sort(x, decreasing = TRUE)
+                               })
                     } else if (self$control$lambda_direction == "increase") {
                       self$control$lambda_grid <-
-                        sort(self$control$lambda_grid, decreasing = FALSE)
+                        lapply(X = self$control$lambda_grid,
+                               FUN = function(x) {
+                                 sort(x, decreasing = FALSE)
+                               })
+                    } else {}
+                    if (self$control$penalty_method == "elastic_net") {
+                      self$control$delta_grid <-
+                        lapply(X = self$control$delta_grid,
+                               FUN = function(x) {
+                                 sort(x, decreasing = FALSE)
+                               })
                     } else {
+                      self$control$delta_grid <-
+                        lapply(X = self$control$delta_grid,
+                               FUN = function(x) {
+                                 sort(x, decreasing = TRUE)
+                               })
                     }
-                    self$control$delta_grid <-
-                      sort(self$control$delta_grid, decreasing = TRUE)
                   } else {
-                    self$control$lambda_grid <- 0
-                    self$control$delta_grid <- Inf
+                    self$control$lambda_grid <- list(0, 0)
+                    self$control$delta_grid <- list(ifelse(self$control$penalty_method == "mcp", Inf, 0), 
+                                                    ifelse(self$control$penalty_method == "mcp", Inf, 0))
                   }
+                  names(self$control$lambda_grid) <- c("lambda_1st_grid", "lambda_2nd_grid")
+                  names(self$control$delta_grid) <- c("delta_1st_grid", "delta_2nd_grid")
                   if (self$control$searcher) {
                     if (self$control$step_grid[[1]] == "default") {
                       self$control$step_grid <-
@@ -1921,8 +2052,10 @@ lslxFitting$set("private",
                   self$fitted_result <- list()
                   if (self$control$regularizer) {
                     length_fitted_result <-
-                      length(self$control$lambda_grid) *
-                      length(self$control$delta_grid)
+                      (length(self$control$lambda_grid[[1]]) *
+                         length(self$control$delta_grid[[1]])) *
+                      (length(self$control$lambda_grid[[2]]) *
+                         length(self$control$delta_grid[[2]]))
                   } else {
                     length_fitted_result <-
                       length(self$control$step_grid)

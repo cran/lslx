@@ -2,6 +2,10 @@
 // written by Po-Hsien Huang psyphh@gmail.com
 
 #include "lslxOptimizer.h"
+#include "utility-function.h"
+
+using namespace Rcpp;
+using namespace Eigen;
 
 // [[Rcpp::depends(RcppEigen)]]
 // compute coefficient matrix
@@ -99,30 +103,7 @@ Rcpp::NumericMatrix compute_model_jacobian_cpp(
   return Rcpp::wrap(model_jacobian);
 }
 
-// compute bfgs hessian
-// [[Rcpp::export]]
-Rcpp::NumericMatrix compute_bfgs_hessian_cpp(
-    Rcpp::NumericVector theta_value,
-    Rcpp::List reduced_data,
-    Rcpp::List reduced_model,
-    Rcpp::List control,
-    Rcpp::List supplied_result) {
-  Eigen::MatrixXd bfgs_hessian;
-  lslxOptimizer optimizer(reduced_data,
-                          reduced_model,
-                          control,
-                          supplied_result);
-  optimizer.set_theta_value(theta_value);
-  optimizer.update_coefficient_matrix();
-  optimizer.update_implied_moment();
-  
-  optimizer.update_residual_weight();
-  optimizer.update_model_jacobian();
-  optimizer.update_loss_expected_hessian();
-  optimizer.update_loss_bfgs_hessian();
-  bfgs_hessian = optimizer.loss_bfgs_hessian;
-  return Rcpp::wrap(bfgs_hessian);
-}
+
 
 // compute expected fisher
 // [[Rcpp::export]]
@@ -260,8 +241,10 @@ Rcpp::NumericMatrix compute_loss_gradient_cpp(
 // [[Rcpp::export]]
 Rcpp::NumericMatrix compute_regularizer_gradient_cpp(
     Rcpp::NumericVector theta_value,
-    double lambda,
-    double delta,
+    double lambda_1st,
+    double lambda_2nd,
+    double delta_1st,
+    double delta_2nd,
     Rcpp::List reduced_data,
     Rcpp::List reduced_model,
     Rcpp::List control,
@@ -272,7 +255,8 @@ Rcpp::NumericMatrix compute_regularizer_gradient_cpp(
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.set_regularizer(Rcpp::as<Rcpp::CharacterVector>(control["regularizer_type"]), lambda, delta);
+  optimizer.set_regularizer(Rcpp::as<Rcpp::CharacterVector>(control["regularizer_type"]), 
+                            lambda_1st, lambda_2nd, delta_1st, delta_2nd);
   optimizer.update_regularizer_gradient();
   regularizer_gradient = optimizer.regularizer_gradient;
   return Rcpp::wrap(regularizer_gradient);
@@ -282,8 +266,10 @@ Rcpp::NumericMatrix compute_regularizer_gradient_cpp(
 // [[Rcpp::export]]
 Rcpp::NumericMatrix compute_objective_gradient_cpp(
     Rcpp::NumericVector theta_value,
-    double lambda,
-    double delta,
+    double lambda_1st,
+    double lambda_2nd,
+    double delta_1st,
+    double delta_2nd,
     Rcpp::List reduced_data,
     Rcpp::List reduced_model,
     Rcpp::List control,
@@ -294,7 +280,8 @@ Rcpp::NumericMatrix compute_objective_gradient_cpp(
                           control,
                           supplied_result);
   optimizer.set_theta_value(theta_value);
-  optimizer.set_regularizer(Rcpp::as<Rcpp::CharacterVector>(control["regularizer_type"]), lambda, delta);
+  optimizer.set_regularizer(Rcpp::as<Rcpp::CharacterVector>(control["regularizer_type"]), 
+                            lambda_1st, lambda_2nd, delta_1st, delta_2nd);
   
   optimizer.update_coefficient_matrix();
   optimizer.update_implied_moment();

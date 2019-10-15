@@ -3,6 +3,8 @@ lslx$set("private",
          "set_heterogeneity",
          function(block,
                   group,
+                  penalty,
+                  set,
                   action,
                   hold_fixed,
                   verbose = TRUE) {
@@ -49,13 +51,15 @@ lslx$set("private",
              stop(
                "No valid relation ",
                do.call(paste, as.list(block[!(block %in% unique(private$model$specification$block))])),
-               " under group ",
+               "under group ",
                do.call(paste, as.list(group)),
-               " is found. Please check the settings."
+               "is found. Please check the settings."
              )
            } else {
              name <- paste0(relation, "/", group)
              private$set_coefficient(name = name,
+                                     penalty = penalty,
+                                     set = set,
                                      action = action,
                                      verbose = verbose)
            }
@@ -96,11 +100,15 @@ lslx$set("public",
          "penalize_heterogeneity",
          function(block,
                   group,
+                  penalty,
+                  set,
                   hold_fixed = TRUE,
                   verbose = TRUE) {
            private$set_heterogeneity(
              block = block,
              group = group,
+             penalty = penalty,
+             set = set,
              action = "penalize",
              hold_fixed = hold_fixed, 
              verbose = verbose

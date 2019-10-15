@@ -18,11 +18,12 @@ lslx$set("public",
                   iter_out_max = 100L,
                   iter_in_max = 50L,
                   iter_other_max = 500L,
-                  iter_armijo_max = 100L,
+                  iter_armijo_max = 20L,
                   tol_out = 1e-3,
                   tol_in = 1e-3,
                   tol_other = 1e-7,
-                  step_size = 0.5,
+                  step_size = 1,
+                  momentum = 0,
                   armijo = 1e-5,
                   ridge_cov = 0,
                   ridge_hessian = 1e-4,
@@ -30,7 +31,9 @@ lslx$set("public",
                   warm_start = TRUE,
                   positive_variance = TRUE,
                   minimum_variance = 1e-4,
+                  armijo_rule = TRUE,
                   enforce_cd = TRUE,
+                  random_update = TRUE,
                   weight_matrix = NULL,
                   verbose = TRUE) {
            control <-
@@ -57,13 +60,16 @@ lslx$set("public",
                tol_in = tol_in,
                tol_other = tol_other,
                step_size = step_size,
+               momentum = momentum,
                armijo = armijo,
                ridge_cov = ridge_cov,
                ridge_hessian = ridge_hessian,
                warm_start = warm_start,
                positive_variance = positive_variance,
                minimum_variance = minimum_variance,
+               armijo_rule = armijo_rule,
                enforce_cd = enforce_cd,
+               random_update = random_update,
                weight_matrix = weight_matrix
              )
            
@@ -208,21 +214,39 @@ lslx$set("public",
            if (private$fitting$control$regularizer) {
              name_grid <-
                paste0(
-                 "ld=",
+                 "lambda=",
+                 "c(",
                  sapply(
                    X = private$fitting$fitted_result$numerical_condition,
                    FUN = function(x) {
-                     getElement(x, "lambda")
+                     getElement(x, "lambda_1st")
                    }
                  ),
-                 "/",
-                 "gm=",
+                 ",",
                  sapply(
                    X = private$fitting$fitted_result$numerical_condition,
                    FUN = function(x) {
-                     getElement(x, "delta")
+                     getElement(x, "lambda_2nd")
                    }
-                 )
+                 ),
+                 ")",
+                 ",",
+                 "delta=",
+                 "c(",
+                 sapply(
+                   X = private$fitting$fitted_result$numerical_condition,
+                   FUN = function(x) {
+                     getElement(x, "delta_1st")
+                   }
+                 ),
+                 ",",
+                 sapply(
+                   X = private$fitting$fitted_result$numerical_condition,
+                   FUN = function(x) {
+                     getElement(x, "delta_2nd")
+                   }
+                 ),
+                 ")"
                )
            } else {
              name_grid <-
