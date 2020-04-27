@@ -79,9 +79,9 @@ lslx$set("public",
                           include_faulty = include_faulty)
            rmsea_test <-
              data.frame(
-               estimate = c(NA, NA),
-               lower = c(NA, NA),
-               upper = c(NA, NA),
+               estimate = c(NaN, NaN),
+               lower = c(NaN, NaN),
+               upper = c(NaN, NaN),
                row.names = c("unadjusted", "mean-adjusted")
              )
            for (row_name_i in row.names(rmsea_test)) {
@@ -91,14 +91,14 @@ lslx$set("public",
                  lr_test[row_name_i, "statistic"]
                lr_df <- lr_test[row_name_i, "df"]
                if (is.na(lr_statistic) | is.na(lr_df)) {
-                 rmsea_test[row_name_i, "estimate"] <- NA
-                 rmsea_test[row_name_i, "lower"] <- NA
-                 rmsea_test[row_name_i, "upper"] <- NA
+                 rmsea_test[row_name_i, "estimate"] <- NaN
+                 rmsea_test[row_name_i, "lower"] <- NaN
+                 rmsea_test[row_name_i, "upper"] <- NaN
                } else if ((lr_df == 0) &
                           (lr_statistic > sqrt(.Machine$double.eps))) {
-                 rmsea_test[row_name_i, "estimate"] <- NA
-                 rmsea_test[row_name_i, "lower"] <- NA
-                 rmsea_test[row_name_i, "upper"] <- NA
+                 rmsea_test[row_name_i, "estimate"] <- NaN
+                 rmsea_test[row_name_i, "lower"] <- NaN
+                 rmsea_test[row_name_i, "upper"] <- NaN
                } else if (lr_statistic < sqrt(.Machine$double.eps)) {
                  rmsea_test[row_name_i, "estimate"] <- 0
                  rmsea_test[row_name_i, "lower"] <- 0
@@ -199,6 +199,7 @@ lslx$set("public",
                   delta,
                   step,
                   standard_error = "default",
+                  ridge_penalty = "default",
                   debias = "default",
                   inference = "default",
                   alpha_level = .05,
@@ -232,6 +233,13 @@ lslx$set("public",
                standard_error <- "sandwich"
              } else {
                standard_error <- "observed_information"
+             }
+           }
+           if (ridge_penalty == "default") {
+             if (private$fitting$control$penalty_method %in% c("ridge", "elastic_net")) {
+               ridge_penalty <- TRUE
+             } else {
+               ridge_penalty <- FALSE
              }
            }
            if (inference == "default") {
@@ -279,6 +287,7 @@ lslx$set("public",
                delta = delta,
                step = step,
                standard_error = standard_error,
+               ridge_penalty = ridge_penalty,
                include_faulty = include_faulty
              )
            if (debias == "none") {
@@ -302,7 +311,7 @@ lslx$set("public",
              standard_error
            if (inference == "naive") {
              coefficient_test$p_value <-
-               pnorm(-abs(coefficient_test$z_value))
+               2 * pnorm(-abs(coefficient_test$z_value))
              coefficient_test$lower <-
                coefficient_test$estimate + qnorm(alpha_level / 2) * coefficient_test$standard_error
              coefficient_test$upper <-
@@ -372,7 +381,7 @@ lslx$set("public",
                coefficient_test$p_value <-
                  ifelse(private$fitting$reduced_model$theta_is_pen,
                         1 - pchisq((coefficient_test$z_value)^2, df = df_scheffe),
-                        pnorm(-abs(coefficient_test$z_value)))
+                        2 * pnorm(-abs(coefficient_test$z_value)))
                coefficient_test$lower <-
                  ifelse(private$fitting$reduced_model$theta_is_pen,
                         coefficient_test$estimate - c_scheffe * coefficient_test$standard_error,
