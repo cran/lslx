@@ -9,4 +9,100 @@ Object of \code{prelslx} R6 class.
 }
 \description{
 R6 class to obtain preliminary result for semi-confirmatory structural equation modeling
+
+R6 class to obtain preliminary result for semi-confirmatory structural equation modeling
+}
+\section{Methods}{
+\subsection{Public methods}{
+\itemize{
+\item \href{#method-prelslx-new}{\code{prelslx$new()}}
+\item \href{#method-prelslx-prefit}{\code{prelslx$prefit()}}
+\item \href{#method-prelslx-clone}{\code{prelslx$clone()}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-prelslx-new"></a>}}
+\if{latex}{\out{\hypertarget{method-prelslx-new}{}}}
+\subsection{Method \code{new()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{prelslx$new(
+  model,
+  data,
+  numeric_variable,
+  ordered_variable,
+  weight_variable,
+  auxiliary_variable,
+  group_variable,
+  reference_group,
+  sample_cov,
+  sample_mean,
+  sample_size,
+  sample_moment_acov,
+  verbose = TRUE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-prelslx-prefit"></a>}}
+\if{latex}{\out{\hypertarget{method-prelslx-prefit}{}}}
+\subsection{Method \code{prefit()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{prelslx$prefit(
+  penalty_method = "mcp",
+  lambda_grid = "default",
+  delta_grid = "default",
+  step_grid = "default",
+  loss = "default",
+  algorithm = "default",
+  missing_method = "default",
+  start_method = "default",
+  lambda_direction = "default",
+  lambda_length = 50L,
+  delta_length = 3L,
+  threshold_value = 0.3,
+  subset = NULL,
+  cv_fold = 1L,
+  iter_out_max = 100L,
+  iter_in_max = 50L,
+  iter_other_max = 500L,
+  iter_armijo_max = 100L,
+  tol_out = 0.001,
+  tol_in = 0.001,
+  tol_other = 1e-07,
+  step_size = 0.5,
+  momentum = 0,
+  armijo = 1e-05,
+  ridge_cov = 0,
+  ridge_hessian = 1e-04,
+  ridge_weight = 1e-04,
+  warm_start = TRUE,
+  positive_variance = TRUE,
+  minimum_variance = 1e-04,
+  armijo_rule = TRUE,
+  enforce_cd = TRUE,
+  random_update = TRUE,
+  weight_matrix = NULL,
+  verbose = TRUE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-prelslx-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-prelslx-clone}{}}}
+\subsection{Method \code{clone()}}{
+The objects of this class are cloneable with this method.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{prelslx$clone(deep = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{deep}}{Whether to make a deep clone.}
+}
+\if{html}{\out{</div>}}
+}
+}
 }

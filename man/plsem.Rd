@@ -4,11 +4,25 @@
 \alias{plsem}
 \title{S3 interface for semi-confirmatory SEM via PL}
 \usage{
-plsem(model, data, penalty_method = "mcp", lambda_grid = "default",
-  delta_grid = "default", numeric_variable, ordered_variable,
-  weight_variable, auxiliary_variable, group_variable, reference_group,
-  sample_cov, sample_mean, sample_size, sample_moment_acov,
-  verbose = TRUE, ...)
+plsem(
+  model,
+  data,
+  penalty_method = "mcp",
+  lambda_grid = "default",
+  delta_grid = "default",
+  numeric_variable,
+  ordered_variable,
+  weight_variable,
+  auxiliary_variable,
+  group_variable,
+  reference_group,
+  sample_cov,
+  sample_mean,
+  sample_size,
+  sample_moment_acov,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{model}{A \code{character} with length one to represent the model specification.}

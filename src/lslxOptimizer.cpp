@@ -133,7 +133,7 @@ lslxOptimizer::lslxOptimizer(Rcpp::List reduced_data,
   saturated_cov = Rcpp::as<List>(reduced_data["saturated_cov"]);
   saturated_mean = Rcpp::as<List>(reduced_data["saturated_mean"]);
   saturated_moment_acov = Rcpp::as<List>(reduced_data["saturated_moment_acov"]);
-  if ((loss == "uls")|(loss == "dwls")|(loss == "wls")) {
+  if ((loss == "uls")||(loss == "dwls")||(loss == "wls")) {
     residual_weight = Rcpp::as<List>(control["weight_matrix"]);
   }
   
@@ -490,7 +490,7 @@ void lslxOptimizer::update_model_jacobian() {
           theta_tflat_idx_jk = theta_tflat_idx_j[theta_matrix_idx_j == k];
           n_theta_jk = theta_flat_idx_jk.size();
           
-          if ((theta_group_idx_unique[j] == 0) | ((theta_group_idx_unique[j] - 1) == i)) {
+          if ((theta_group_idx_unique[j] == 0) || ((theta_group_idx_unique[j] - 1) == i)) {
             if (n_theta_jk > 0) {
               switch(k) {
               case 1: {
@@ -585,7 +585,7 @@ void lslxOptimizer::update_model_jacobian() {
           theta_flat_idx_jk = theta_flat_idx_j[theta_matrix_idx_j == k];
           theta_tflat_idx_jk = theta_tflat_idx_j[theta_matrix_idx_j == k];
           n_theta_jk = theta_flat_idx_jk.size();
-          if ((theta_group_idx_unique[j] == 0) | ((theta_group_idx_unique[j] - 1) == i)) {
+          if ((theta_group_idx_unique[j] == 0) || ((theta_group_idx_unique[j] - 1) == i)) {
             if (n_theta_jk > 0) {
               switch(k) {
               case 0: {
@@ -767,7 +767,7 @@ void lslxOptimizer::update_model_residual() {
           mu_i * saturated_mean_i.transpose() -
           saturated_mean_i * mu_i.transpose() + 
           mu_i * mu_i.transpose() - sigma_i);
-    } else if ((loss == "uls")|(loss == "dwls")|(loss == "wls")) {
+    } else if ((loss == "uls")||(loss == "dwls")||(loss == "wls")) {
       if (!continuous) {
         Eigen::Map<MatrixXd> implied_moment_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(implied_moment[i]));
         Eigen::Map<MatrixXd> saturated_moment_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(saturated_moment[i]));
@@ -804,7 +804,7 @@ void lslxOptimizer::update_residual_weight() {
                                 deduplify_both(Eigen::kroneckerProduct(sigma_inv_i, sigma_inv_i), 
                                                idx_vech, idx_tvech, idx_vech_match);
     }
-  } else if ((loss == "uls")|(loss == "dwls")|(loss == "wls")) {
+  } else if ((loss == "uls")||(loss == "dwls")||(loss == "wls")) {
   } else {}
 }
 
@@ -814,7 +814,7 @@ void lslxOptimizer::update_loss_value() {
   loss_value = 0;
   double sample_proportion_i;
   double loss_value_i;
-  if ((loss == "uls")|(loss == "dwls")|(loss == "wls")) {
+  if ((loss == "uls")||(loss == "dwls")||(loss == "wls")) {
     update_model_residual();
   } 
   int i;
@@ -830,7 +830,7 @@ void lslxOptimizer::update_loss_value() {
         std::log((saturated_cov_i * sigma_inv_i).determinant()) - n_response + 
         ((saturated_mean_i - mu_i).transpose() * sigma_inv_i * (saturated_mean_i - mu_i)).value();
       loss_value_i = sample_proportion_i * loss_value_i;
-    } else if ((loss == "uls")|(loss == "dwls")|(loss == "wls")) {
+    } else if ((loss == "uls")||(loss == "dwls")||(loss == "wls")) {
       Eigen::Map<Eigen::MatrixXd> model_residual_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(model_residual[i]));
       Eigen::Map<Eigen::MatrixXd> residual_weight_i(Rcpp::as< Eigen::Map <Eigen::MatrixXd> >(residual_weight[i]));
       loss_value_i = (model_residual_i.transpose() * residual_weight_i * model_residual_i).value();
@@ -958,7 +958,7 @@ void lslxOptimizer::update_loss_observed_hessian() {
     update_implied_moment();
     if (loss == "ml") {
       update_loss_gradient_direct(); 
-    } else if ((loss == "uls") | (loss == "dwls") | (loss == "wls")) {
+    } else if ((loss == "uls") || (loss == "dwls") || (loss == "wls")) {
       update_model_jacobian();
       update_loss_gradient(); 
     } else {}
@@ -1076,11 +1076,11 @@ void lslxOptimizer::update_regularizer_gradient() {
           regularizer_gradient(i, 0) = (2 * theta_weight[i] * lambda) * theta_value[i];
         }
       } else if (theta_penalty[i] == "mcp") {
-        if ((theta_value[i] <= (lambda * delta)) & (theta_value[i] > DBL_EPSILON)) {
+        if ((theta_value[i] <= (lambda * delta)) && (theta_value[i] > DBL_EPSILON)) {
           regularizer_gradient(i, 0) = theta_weight[i] * lambda - theta_weight[i] * (theta_value[i] / delta);
-        } else if ((- theta_value[i] <= (lambda * delta)) & (theta_value[i] < - DBL_EPSILON)) {
+        } else if ((- theta_value[i] <= (lambda * delta)) && (theta_value[i] < - DBL_EPSILON)) {
           regularizer_gradient(i, 0) = - theta_weight[i] * lambda - theta_weight[i] * (theta_value[i] / delta);
-        } else if ((theta_value[i] > (lambda * delta)) | ((- theta_value[i]) > (lambda * delta))) {
+        } else if ((theta_value[i] > (lambda * delta)) || ((- theta_value[i]) > (lambda * delta))) {
           regularizer_gradient(i, 0) = 0;
         } else {
           regularizer_gradient(i, 0) = sign(theta_value[i]) * theta_weight[i] * lambda;
@@ -1142,11 +1142,11 @@ void lslxOptimizer::update_theta_direction() {
   int i, j, k;
   if (enforce_cd) {
     g = loss_gradient;
-    if ((algorithm == "gd") | ((algorithm == "dynamic") & (iter_out <= warm_out))) {
+    if ((algorithm == "gd") || ((algorithm == "dynamic") && (iter_out <= warm_out))) {
       h = identity_theta;
     } else if (algorithm == "bfgs") {
       h = loss_bfgs_hessian;
-    } else if ((algorithm == "fisher") | ((algorithm == "dynamic") & (iter_out > warm_out))) {
+    } else if ((algorithm == "fisher") || ((algorithm == "dynamic") && (iter_out > warm_out))) {
       h = loss_expected_hessian;
     } else {}
     for (i = 0; i < n_theta; i++) {
@@ -1156,7 +1156,7 @@ void lslxOptimizer::update_theta_direction() {
       theta_number = Rcpp::sample(theta_number, theta_number.size(), false);
       Eigen::VectorXd d = Rcpp::as<Eigen::VectorXd> (theta_direction);
       Eigen::MatrixXd hd = (h * d);
-      if ((algorithm == "gd")| ((algorithm == "dynamic") & (iter_out <= warm_out))) {
+      if ((algorithm == "gd") || ((algorithm == "dynamic") && (iter_out <= warm_out))) {
         hd = d;
       } else {
         hd = (h * d);
@@ -1251,17 +1251,17 @@ void lslxOptimizer::update_theta_direction() {
     }
   } else {
     g = loss_gradient;
-    if ((algorithm == "gd")| ((algorithm == "dynamic") & (iter_out <= warm_out))) {
+    if ((algorithm == "gd") || ((algorithm == "dynamic") && (iter_out <= warm_out))) {
       h = identity_theta;
     } else if (algorithm == "bfgs") {
       h = loss_bfgs_hessian_inv;
-    } else if ((algorithm == "fisher")| ((algorithm == "dynamic") & (iter_out > warm_out))) {
+    } else if ((algorithm == "fisher") || ((algorithm == "dynamic") && (iter_out > warm_out))) {
       h = expand_both(slice_both(
         loss_expected_hessian, theta_is_est_idx, theta_is_est_idx).inverse(),
         theta_is_est_idx, theta_is_est_idx,
         n_theta, n_theta);
     } else {}
-    if ((algorithm == "gd")| ((algorithm == "dynamic") & (iter_out <= warm_out))) {
+    if ((algorithm == "gd") || ((algorithm == "dynamic") && (iter_out <= warm_out))) {
       theta_direction = - g;
     } else {
       theta_direction = - h * g;
@@ -1416,18 +1416,18 @@ void lslxOptimizer::update_coefficient() {
       update_theta_direction();
       update_theta_value();
       if (loss == "ml") {
-        if ((algorithm == "gd")| ((algorithm == "dynamic") & (iter_out <= warm_out))) {
+        if ((algorithm == "gd") || ((algorithm == "dynamic") && (iter_out <= warm_out))) {
           update_loss_gradient_direct();
         } else if (algorithm == "bfgs") {
           update_loss_gradient_direct();
           update_loss_bfgs_hessian();
-        } else if ((algorithm == "fisher")| ((algorithm == "dynamic") & (iter_out > warm_out))) {
+        } else if ((algorithm == "fisher") || ((algorithm == "dynamic") && (iter_out > warm_out))) {
           update_residual_weight();
           update_model_jacobian();
           update_loss_gradient_direct();
           update_loss_expected_hessian();
         } else {}
-      } else if ((loss == "uls")|(loss == "dwls")|(loss == "wls")) {
+      } else if ((loss == "uls") || (loss == "dwls") || (loss == "wls")) {
         update_model_jacobian();
         update_loss_gradient();
         update_loss_expected_hessian();
@@ -1463,7 +1463,7 @@ void lslxOptimizer::update_numerical_condition() {
     loss_hessian = identity_theta;
   } else if (algorithm == "bfgs") {
     loss_hessian = loss_bfgs_hessian;
-  } else if ((algorithm == "fisher") | (algorithm == "dynamic")) {
+  } else if ((algorithm == "fisher") || (algorithm == "dynamic")) {
     loss_hessian = loss_expected_hessian;    
   } else{}
   int i;
@@ -1544,7 +1544,7 @@ void lslxOptimizer::update_numerical_condition() {
         (residual_weight_matrix - (residual_weight_matrix * model_jacobian_matrix) *
         loss_hessian.inverse() *
         (model_jacobian_matrix.transpose() * residual_weight_matrix))).diagonal().sum();
-      if ((regularizer_type == "ridge") | (regularizer_type == "elastic_net")) {
+      if ((regularizer_type == "ridge") || (regularizer_type == "elastic_net")) {
         degrees_of_freedom = robust_degrees_of_freedom;
         robust_degrees_of_freedom = NAN;
         scaling_factor = NAN;
@@ -1600,7 +1600,7 @@ void lslxOptimizer::update_fit_index() {
   double cfi_num = std::max((double(n_observation) * loss_value - double(degrees_of_freedom)), 0.0);
   double cfi_den = std::max(std::max(double(n_observation) * loss_value - double(degrees_of_freedom),
                                      double(n_observation) * baseline_loss_value - double(baseline_degrees_of_freedom)), 0.0);
-  if ((cfi_num < std::sqrt(DBL_EPSILON)) & (cfi_den < std::sqrt(DBL_EPSILON))) {
+  if ((cfi_num < std::sqrt(DBL_EPSILON)) && (cfi_den < std::sqrt(DBL_EPSILON))) {
     cfi = NAN;
   } else {
     if (cfi_num < DBL_EPSILON) {
@@ -1660,36 +1660,38 @@ void lslxOptimizer::complete_searching() {
     Rcpp::LogicalVector theta_is_est_zero = Rcpp::clone(theta_is_est);
     Rcpp::NumericVector theta_value_zero = Rcpp::clone(theta_value);
     Rcpp::NumericVector loss_value_all(theta_is_search_idx.size());
-    int i;
+    int i, j;
     if (theta_is_search_idx.size() > 0) {
       for (i = 0; i < theta_is_search_idx.size(); i++) {
+        iter_out = -1;
         theta_start = Rcpp::clone(theta_value_zero);
         theta_value = Rcpp::clone(theta_value_zero);
         theta_is_est = Rcpp::clone(theta_is_est_zero);
         if (searcher_type == "forward") {
-          theta_is_est[theta_is_search_idx[i]] = 1;
+          theta_is_est[theta_is_search_idx[i]] = true;
           update_coefficient();
         } else if (searcher_type == "backward") {
-          theta_is_est[theta_is_search_idx[i]] = 0;
-          theta_start[theta_is_search_idx[i]] = 0;
-          theta_value[theta_is_search_idx[i]] = 0;
+          theta_is_est[theta_is_search_idx[i]] = false;
+          theta_start[theta_is_search_idx[i]] = false;
+          theta_value[theta_is_search_idx[i]] = false;
           update_coefficient();
         } else {}
         loss_value_all[i] = loss_value;
       }
-      i = Rcpp::which_min(loss_value_all);
+      j = Rcpp::which_min(loss_value_all);
       theta_start = Rcpp::clone(theta_value_zero);
       theta_value = Rcpp::clone(theta_value_zero);
       theta_is_est = Rcpp::clone(theta_is_est_zero);
       if (searcher_type == "forward") {
-        theta_is_est[theta_is_search_idx[i]] = 1;
+        theta_is_est[theta_is_search_idx[j]] = true;
       } else if (searcher_type == "backward") {
-        theta_is_est[theta_is_search_idx[i]] = 0;
-        theta_start[theta_is_search_idx[i]] = 0;
-        theta_value[theta_is_search_idx[i]] = 0;
+        theta_is_est[theta_is_search_idx[j]] = false;
+        theta_start[theta_is_search_idx[j]] = false;
+        theta_value[theta_is_search_idx[j]] = false;
       } else {}
+      iter_out = -1;
       theta_is_est_idx = which(theta_is_est);
-      theta_is_search[theta_is_search_idx[i]] = 0;
+      theta_is_search[theta_is_search_idx[j]] = false;
       theta_is_search_idx = which(theta_is_search);    
       complete_estimation();
       step = step + 1;

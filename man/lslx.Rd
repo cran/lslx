@@ -9,6 +9,8 @@ Object of \code{lslx} R6 class for fitting semi-confirmatory structural equation
 }
 \description{
 R6 class for semi-confirmatory structural equation modeling via penalized likelihood
+
+R6 class for semi-confirmatory structural equation modeling via penalized likelihood
 }
 \section{Usage}{
 
@@ -1312,4 +1314,948 @@ Yuan, G. X., Ho, C. H., & Lin, C. J. (2012). An Improved GLMNET for L1-regulariz
 Zhang, C. H. (2010). Nearly unbiased variable selection under minimax concave penalty. Annals of Statistics, 38(2), 894–942.
 
 Zou, H., & Hastie, T. (2005). Regularization and Variable Selection via the Elastic Net. Journal of the Royal Statistical Society B, 67(2), 301–320.
+}
+\section{Super class}{
+\code{\link[lslx:prelslx]{lslx::prelslx}} -> \code{lslx}
+}
+\section{Methods}{
+\subsection{Public methods}{
+\itemize{
+\item \href{#method-lslx-extract_specification}{\code{lslx$extract_specification()}}
+\item \href{#method-lslx-extract_saturated_cov}{\code{lslx$extract_saturated_cov()}}
+\item \href{#method-lslx-extract_saturated_mean}{\code{lslx$extract_saturated_mean()}}
+\item \href{#method-lslx-extract_saturated_moment_acov}{\code{lslx$extract_saturated_moment_acov()}}
+\item \href{#method-lslx-extract_lambda_grid}{\code{lslx$extract_lambda_grid()}}
+\item \href{#method-lslx-extract_delta_grid}{\code{lslx$extract_delta_grid()}}
+\item \href{#method-lslx-extract_weight_matrix}{\code{lslx$extract_weight_matrix()}}
+\item \href{#method-lslx-extract_penalty_level}{\code{lslx$extract_penalty_level()}}
+\item \href{#method-lslx-extract_coefficient_indicator}{\code{lslx$extract_coefficient_indicator()}}
+\item \href{#method-lslx-extract_numerical_condition}{\code{lslx$extract_numerical_condition()}}
+\item \href{#method-lslx-extract_information_criterion}{\code{lslx$extract_information_criterion()}}
+\item \href{#method-lslx-extract_fit_index}{\code{lslx$extract_fit_index()}}
+\item \href{#method-lslx-extract_cv_error}{\code{lslx$extract_cv_error()}}
+\item \href{#method-lslx-extract_coefficient}{\code{lslx$extract_coefficient()}}
+\item \href{#method-lslx-extract_debiased_coefficient}{\code{lslx$extract_debiased_coefficient()}}
+\item \href{#method-lslx-extract_implied_cov}{\code{lslx$extract_implied_cov()}}
+\item \href{#method-lslx-extract_implied_mean}{\code{lslx$extract_implied_mean()}}
+\item \href{#method-lslx-extract_residual_cov}{\code{lslx$extract_residual_cov()}}
+\item \href{#method-lslx-extract_residual_mean}{\code{lslx$extract_residual_mean()}}
+\item \href{#method-lslx-extract_coefficient_matrix}{\code{lslx$extract_coefficient_matrix()}}
+\item \href{#method-lslx-extract_moment_jacobian}{\code{lslx$extract_moment_jacobian()}}
+\item \href{#method-lslx-extract_expected_information}{\code{lslx$extract_expected_information()}}
+\item \href{#method-lslx-extract_observed_information}{\code{lslx$extract_observed_information()}}
+\item \href{#method-lslx-extract_score_acov}{\code{lslx$extract_score_acov()}}
+\item \href{#method-lslx-extract_coefficient_acov}{\code{lslx$extract_coefficient_acov()}}
+\item \href{#method-lslx-extract_loss_gradient}{\code{lslx$extract_loss_gradient()}}
+\item \href{#method-lslx-extract_regularizer_gradient}{\code{lslx$extract_regularizer_gradient()}}
+\item \href{#method-lslx-extract_objective_gradient}{\code{lslx$extract_objective_gradient()}}
+\item \href{#method-lslx-fit}{\code{lslx$fit()}}
+\item \href{#method-lslx-fit_lasso}{\code{lslx$fit_lasso()}}
+\item \href{#method-lslx-fit_ridge}{\code{lslx$fit_ridge()}}
+\item \href{#method-lslx-fit_elastic_net}{\code{lslx$fit_elastic_net()}}
+\item \href{#method-lslx-fit_mcp}{\code{lslx$fit_mcp()}}
+\item \href{#method-lslx-fit_forward}{\code{lslx$fit_forward()}}
+\item \href{#method-lslx-fit_backward}{\code{lslx$fit_backward()}}
+\item \href{#method-lslx-fit_none}{\code{lslx$fit_none()}}
+\item \href{#method-lslx-get_model}{\code{lslx$get_model()}}
+\item \href{#method-lslx-get_data}{\code{lslx$get_data()}}
+\item \href{#method-lslx-get_fitting}{\code{lslx$get_fitting()}}
+\item \href{#method-lslx-plot_numerical_condition}{\code{lslx$plot_numerical_condition()}}
+\item \href{#method-lslx-plot_information_criterion}{\code{lslx$plot_information_criterion()}}
+\item \href{#method-lslx-plot_fit_index}{\code{lslx$plot_fit_index()}}
+\item \href{#method-lslx-plot_coefficient}{\code{lslx$plot_coefficient()}}
+\item \href{#method-lslx-print}{\code{lslx$print()}}
+\item \href{#method-lslx-free_block}{\code{lslx$free_block()}}
+\item \href{#method-lslx-fix_block}{\code{lslx$fix_block()}}
+\item \href{#method-lslx-penalize_block}{\code{lslx$penalize_block()}}
+\item \href{#method-lslx-free_coefficient}{\code{lslx$free_coefficient()}}
+\item \href{#method-lslx-fix_coefficient}{\code{lslx$fix_coefficient()}}
+\item \href{#method-lslx-penalize_coefficient}{\code{lslx$penalize_coefficient()}}
+\item \href{#method-lslx-set_coefficient_type}{\code{lslx$set_coefficient_type()}}
+\item \href{#method-lslx-set_coefficient_start}{\code{lslx$set_coefficient_start()}}
+\item \href{#method-lslx-set_data}{\code{lslx$set_data()}}
+\item \href{#method-lslx-free_directed}{\code{lslx$free_directed()}}
+\item \href{#method-lslx-fix_directed}{\code{lslx$fix_directed()}}
+\item \href{#method-lslx-penalize_directed}{\code{lslx$penalize_directed()}}
+\item \href{#method-lslx-free_heterogeneity}{\code{lslx$free_heterogeneity()}}
+\item \href{#method-lslx-fix_heterogeneity}{\code{lslx$fix_heterogeneity()}}
+\item \href{#method-lslx-penalize_heterogeneity}{\code{lslx$penalize_heterogeneity()}}
+\item \href{#method-lslx-free_undirected}{\code{lslx$free_undirected()}}
+\item \href{#method-lslx-fix_undirected}{\code{lslx$fix_undirected()}}
+\item \href{#method-lslx-penalize_undirected}{\code{lslx$penalize_undirected()}}
+\item \href{#method-lslx-summarize}{\code{lslx$summarize()}}
+\item \href{#method-lslx-test_lr}{\code{lslx$test_lr()}}
+\item \href{#method-lslx-test_rmsea}{\code{lslx$test_rmsea()}}
+\item \href{#method-lslx-test_coefficient}{\code{lslx$test_coefficient()}}
+\item \href{#method-lslx-validate}{\code{lslx$validate()}}
+\item \href{#method-lslx-clone}{\code{lslx$clone()}}
+}
+}
+\if{html}{\out{
+<details open><summary>Inherited methods</summary>
+<ul>
+<li><span class="pkg-link" data-pkg="lslx" data-topic="prelslx" data-id="initialize"><a href='../../lslx/html/prelslx.html#method-prelslx-initialize'><code>lslx::prelslx$initialize()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="lslx" data-topic="prelslx" data-id="prefit"><a href='../../lslx/html/prelslx.html#method-prelslx-prefit'><code>lslx::prelslx$prefit()</code></a></span></li>
+</ul>
+</details>
+}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_specification"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_specification}{}}}
+\subsection{Method \code{extract_specification()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_specification()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_saturated_cov"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_saturated_cov}{}}}
+\subsection{Method \code{extract_saturated_cov()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_saturated_cov()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_saturated_mean"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_saturated_mean}{}}}
+\subsection{Method \code{extract_saturated_mean()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_saturated_mean()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_saturated_moment_acov"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_saturated_moment_acov}{}}}
+\subsection{Method \code{extract_saturated_moment_acov()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_saturated_moment_acov()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_lambda_grid"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_lambda_grid}{}}}
+\subsection{Method \code{extract_lambda_grid()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_lambda_grid()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_delta_grid"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_delta_grid}{}}}
+\subsection{Method \code{extract_delta_grid()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_delta_grid()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_weight_matrix"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_weight_matrix}{}}}
+\subsection{Method \code{extract_weight_matrix()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_weight_matrix()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_penalty_level"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_penalty_level}{}}}
+\subsection{Method \code{extract_penalty_level()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_penalty_level(
+  selector,
+  lambda,
+  delta,
+  step,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_coefficient_indicator"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_coefficient_indicator}{}}}
+\subsection{Method \code{extract_coefficient_indicator()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_coefficient_indicator(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_numerical_condition"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_numerical_condition}{}}}
+\subsection{Method \code{extract_numerical_condition()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_numerical_condition(
+  selector,
+  lambda,
+  delta,
+  step,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_information_criterion"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_information_criterion}{}}}
+\subsection{Method \code{extract_information_criterion()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_information_criterion(
+  selector,
+  lambda,
+  delta,
+  step,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_fit_index"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_fit_index}{}}}
+\subsection{Method \code{extract_fit_index()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_fit_index(selector, lambda, delta, step, include_faulty = FALSE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_cv_error"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_cv_error}{}}}
+\subsection{Method \code{extract_cv_error()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_cv_error(selector, lambda, delta, step, include_faulty = FALSE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_coefficient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_coefficient}{}}}
+\subsection{Method \code{extract_coefficient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_coefficient(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_debiased_coefficient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_debiased_coefficient}{}}}
+\subsection{Method \code{extract_debiased_coefficient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_debiased_coefficient(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_implied_cov"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_implied_cov}{}}}
+\subsection{Method \code{extract_implied_cov()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_implied_cov(selector, lambda, delta, step, include_faulty = FALSE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_implied_mean"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_implied_mean}{}}}
+\subsection{Method \code{extract_implied_mean()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_implied_mean(
+  selector,
+  lambda,
+  delta,
+  step,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_residual_cov"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_residual_cov}{}}}
+\subsection{Method \code{extract_residual_cov()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_residual_cov(
+  selector,
+  lambda,
+  delta,
+  step,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_residual_mean"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_residual_mean}{}}}
+\subsection{Method \code{extract_residual_mean()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_residual_mean(
+  selector,
+  lambda,
+  delta,
+  step,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_coefficient_matrix"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_coefficient_matrix}{}}}
+\subsection{Method \code{extract_coefficient_matrix()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_coefficient_matrix(
+  selector,
+  lambda,
+  delta,
+  step,
+  block,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_moment_jacobian"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_moment_jacobian}{}}}
+\subsection{Method \code{extract_moment_jacobian()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_moment_jacobian(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_expected_information"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_expected_information}{}}}
+\subsection{Method \code{extract_expected_information()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_expected_information(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_observed_information"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_observed_information}{}}}
+\subsection{Method \code{extract_observed_information()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_observed_information(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_score_acov"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_score_acov}{}}}
+\subsection{Method \code{extract_score_acov()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_score_acov(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_coefficient_acov"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_coefficient_acov}{}}}
+\subsection{Method \code{extract_coefficient_acov()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_coefficient_acov(
+  selector,
+  lambda,
+  delta,
+  step,
+  standard_error = "default",
+  ridge_penalty = "default",
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_loss_gradient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_loss_gradient}{}}}
+\subsection{Method \code{extract_loss_gradient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_loss_gradient(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_regularizer_gradient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_regularizer_gradient}{}}}
+\subsection{Method \code{extract_regularizer_gradient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_regularizer_gradient(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-extract_objective_gradient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-extract_objective_gradient}{}}}
+\subsection{Method \code{extract_objective_gradient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$extract_objective_gradient(
+  selector,
+  lambda,
+  delta,
+  step,
+  type = "default",
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fit"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fit}{}}}
+\subsection{Method \code{fit()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fit(
+  penalty_method = "mcp",
+  lambda_grid = "default",
+  delta_grid = "default",
+  step_grid = "default",
+  loss = "default",
+  algorithm = "default",
+  missing_method = "default",
+  start_method = "default",
+  lambda_direction = "default",
+  lambda_length = 50L,
+  delta_length = 3L,
+  threshold_value = 0.3,
+  subset = NULL,
+  cv_fold = 1L,
+  iter_out_max = 100L,
+  iter_in_max = 50L,
+  iter_other_max = 500L,
+  iter_armijo_max = 20L,
+  tol_out = 0.001,
+  tol_in = 0.001,
+  tol_other = 1e-07,
+  step_size = 1,
+  momentum = 0,
+  armijo = 1e-05,
+  ridge_cov = 0,
+  ridge_hessian = 1e-04,
+  ridge_weight = 1e-04,
+  warm_start = TRUE,
+  positive_variance = TRUE,
+  minimum_variance = 1e-04,
+  armijo_rule = TRUE,
+  enforce_cd = TRUE,
+  random_update = TRUE,
+  weight_matrix = NULL,
+  verbose = TRUE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fit_lasso"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fit_lasso}{}}}
+\subsection{Method \code{fit_lasso()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fit_lasso(lambda_grid = "default", ...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fit_ridge"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fit_ridge}{}}}
+\subsection{Method \code{fit_ridge()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fit_ridge(lambda_grid = "default", ...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fit_elastic_net"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fit_elastic_net}{}}}
+\subsection{Method \code{fit_elastic_net()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fit_elastic_net(lambda_grid = "default", delta_grid = "default", ...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fit_mcp"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fit_mcp}{}}}
+\subsection{Method \code{fit_mcp()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fit_mcp(lambda_grid = "default", delta_grid = "default", ...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fit_forward"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fit_forward}{}}}
+\subsection{Method \code{fit_forward()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fit_forward(step_grid = "default", ...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fit_backward"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fit_backward}{}}}
+\subsection{Method \code{fit_backward()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fit_backward(step_grid = "default", ...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fit_none"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fit_none}{}}}
+\subsection{Method \code{fit_none()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fit_none(...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-get_model"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-get_model}{}}}
+\subsection{Method \code{get_model()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$get_model()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-get_data"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-get_data}{}}}
+\subsection{Method \code{get_data()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$get_data()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-get_fitting"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-get_fitting}{}}}
+\subsection{Method \code{get_fitting()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$get_fitting()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-plot_numerical_condition"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-plot_numerical_condition}{}}}
+\subsection{Method \code{plot_numerical_condition()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$plot_numerical_condition(
+  condition,
+  x_scale = "default",
+  x_reverse = "default",
+  mode = "default"
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-plot_information_criterion"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-plot_information_criterion}{}}}
+\subsection{Method \code{plot_information_criterion()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$plot_information_criterion(
+  criterion,
+  x_scale = "default",
+  x_reverse = "default",
+  mode = "default"
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-plot_fit_index"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-plot_fit_index}{}}}
+\subsection{Method \code{plot_fit_index()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$plot_fit_index(
+  index,
+  x_scale = "default",
+  x_reverse = "default",
+  mode = "default"
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-plot_coefficient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-plot_coefficient}{}}}
+\subsection{Method \code{plot_coefficient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$plot_coefficient(
+  block,
+  left,
+  right,
+  both,
+  x_scale = "default",
+  x_reverse = "default",
+  mode = "default"
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-print"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-print}{}}}
+\subsection{Method \code{print()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$print()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-free_block"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-free_block}{}}}
+\subsection{Method \code{free_block()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$free_block(block, group, type, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fix_block"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fix_block}{}}}
+\subsection{Method \code{fix_block()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fix_block(block, group, type, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-penalize_block"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-penalize_block}{}}}
+\subsection{Method \code{penalize_block()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$penalize_block(block, group, penalty, set, type, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-free_coefficient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-free_coefficient}{}}}
+\subsection{Method \code{free_coefficient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$free_coefficient(name, start, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fix_coefficient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fix_coefficient}{}}}
+\subsection{Method \code{fix_coefficient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fix_coefficient(name, start, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-penalize_coefficient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-penalize_coefficient}{}}}
+\subsection{Method \code{penalize_coefficient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$penalize_coefficient(name, start, penalty, set, weight, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-set_coefficient_type"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-set_coefficient_type}{}}}
+\subsection{Method \code{set_coefficient_type()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$set_coefficient_type(name, type)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-set_coefficient_start"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-set_coefficient_start}{}}}
+\subsection{Method \code{set_coefficient_start()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$set_coefficient_start(name, start)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-set_data"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-set_data}{}}}
+\subsection{Method \code{set_data()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$set_data(data, sample_cov, sample_mean, sample_size, sample_moment_acov)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-free_directed"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-free_directed}{}}}
+\subsection{Method \code{free_directed()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$free_directed(left, right, group, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fix_directed"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fix_directed}{}}}
+\subsection{Method \code{fix_directed()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fix_directed(left, right, group, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-penalize_directed"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-penalize_directed}{}}}
+\subsection{Method \code{penalize_directed()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$penalize_directed(left, right, group, penalty, set, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-free_heterogeneity"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-free_heterogeneity}{}}}
+\subsection{Method \code{free_heterogeneity()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$free_heterogeneity(block, group, hold_fixed = TRUE, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fix_heterogeneity"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fix_heterogeneity}{}}}
+\subsection{Method \code{fix_heterogeneity()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fix_heterogeneity(block, group, hold_fixed = TRUE, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-penalize_heterogeneity"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-penalize_heterogeneity}{}}}
+\subsection{Method \code{penalize_heterogeneity()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$penalize_heterogeneity(
+  block,
+  group,
+  penalty,
+  set,
+  hold_fixed = TRUE,
+  verbose = TRUE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-free_undirected"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-free_undirected}{}}}
+\subsection{Method \code{free_undirected()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$free_undirected(both, group, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-fix_undirected"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-fix_undirected}{}}}
+\subsection{Method \code{fix_undirected()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$fix_undirected(both, group, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-penalize_undirected"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-penalize_undirected}{}}}
+\subsection{Method \code{penalize_undirected()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$penalize_undirected(both, group, penalty, set, verbose = TRUE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-summarize"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-summarize}{}}}
+\subsection{Method \code{summarize()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$summarize(
+  selector,
+  lambda,
+  delta,
+  step,
+  standard_error = "default",
+  ridge_penalty = "default",
+  debias = "default",
+  inference = "default",
+  alpha_level = 0.05,
+  include_faulty = FALSE,
+  style = "default",
+  mode = "default",
+  interval = TRUE,
+  digit = 3L,
+  output = list(general_information = TRUE, fitting_information = FALSE,
+    saturated_model_information = FALSE, baseline_model_information = FALSE,
+    numerical_condition = TRUE, information_criterion = FALSE, fit_index = TRUE, cv_error
+    = TRUE, lr_test = TRUE, rmsea_test = TRUE, coefficient_test = TRUE)
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-test_lr"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-test_lr}{}}}
+\subsection{Method \code{test_lr()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$test_lr(selector, lambda, delta, step, include_faulty = FALSE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-test_rmsea"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-test_rmsea}{}}}
+\subsection{Method \code{test_rmsea()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$test_rmsea(
+  selector,
+  lambda,
+  delta,
+  step,
+  alpha_level = 0.05,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-test_coefficient"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-test_coefficient}{}}}
+\subsection{Method \code{test_coefficient()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$test_coefficient(
+  selector,
+  lambda,
+  delta,
+  step,
+  standard_error = "default",
+  ridge_penalty = "default",
+  debias = "default",
+  inference = "default",
+  alpha_level = 0.05,
+  include_faulty = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-validate"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-validate}{}}}
+\subsection{Method \code{validate()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$validate(
+  selector,
+  lambda,
+  delta,
+  data,
+  subset = NULL,
+  do_fit = "default",
+  standard_error = "default",
+  alpha_level = 0.05,
+  include_faulty = FALSE,
+  style = "default",
+  mode = "default",
+  interval = TRUE,
+  digit = 3L
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lslx-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-lslx-clone}{}}}
+\subsection{Method \code{clone()}}{
+The objects of this class are cloneable with this method.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lslx$clone(deep = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{deep}}{Whether to make a deep clone.}
+}
+\if{html}{\out{</div>}}
+}
+}
 }

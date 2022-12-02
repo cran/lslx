@@ -118,7 +118,7 @@ void compute_saturated_moment_acov_response_cpp(
     idx_tvech_i = create_idx_tvech(n_response_i, true);
     idx_vech_match_i = find_idx_match(idx_vech_i, idx_tvech_i);
     
-    if ((y_obs_i.size() == 1) & ((Rcpp::as< Rcpp::IntegerVector >(m_idx_i[0])).size() == n_response_i)) {
+    if ((y_obs_i.size() == 1) && ((Rcpp::as< Rcpp::IntegerVector >(m_idx_i[0])).size() == n_response_i)) {
       y_obs_ij = Rcpp::as<Eigen::MatrixXd>(y_obs_i[0]);
       w_ij = Rcpp::as<Eigen::VectorXd>(w_i[0]);
       sample_size_ij = y_obs_ij.rows();
